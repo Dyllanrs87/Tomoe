@@ -1,0 +1,15 @@
+{
+  "name": "Tomoe — Professora de Japonês",
+  "short_name": "Tomoe",
+  "description": "Sua professora particular de japonês, do zero ao JLPT N1.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FBF8F3",
+  "theme_color": "#E4002B",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

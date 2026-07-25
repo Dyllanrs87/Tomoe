@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#E4002B" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Tomoe" />
+<meta name="mobile-web-app-capable" content="yes" />
+<title>Tomoe 巴 — Professora de Japonês</title>
+<style>
+:root{
+  --shu:#E4002B;        /* vermelho torii (principal) */
+  --shu-dark:#B00021;
+  --sakura:#F4A6C0;     /* rosa */
+  --ai:#204A87;         /* índigo */
+  --matcha:#6FA45B;     /* verde */
+  --sumi:#1A1714;       /* preto tinta */
+  --washi:#FBF8F3;      /* branco papel */
+  --bg:var(--washi);
+  --card:#ffffff;
+  --text:#241f1c;
+  --muted:#8a807a;
+  --line:#ece5dd;
+  --shadow:0 6px 20px rgba(60,40,30,.08);
+  --radius:18px;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#14110f; --card:#211c19; --text:#f2ebe4; --muted:#a99e95;
+    --line:#332c27; --washi:#211c19; --shadow:0 6px 22px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="light"]{ --bg:#FBF8F3;--card:#fff;--text:#241f1c;--muted:#8a807a;--line:#ece5dd;--shadow:0 6px 20px rgba(60,40,30,.08); }
+:root[data-theme="dark"]{ --bg:#14110f;--card:#211c19;--text:#f2ebe4;--muted:#a99e95;--line:#332c27;--shadow:0 6px 22px rgba(0,0,0,.4); }
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{
+  font-family:"Yu Gothic UI","Hiragino Kaku Gothic ProN","Noto Sans JP","Segoe UI",Meiryo,system-ui,-apple-system,sans-serif;
+  background:var(--bg);color:var(--text);
+  display:flex;justify-content:center;
+}
+#app{width:100%;max-width:900px;min-height:100dvh;display:flex;flex-direction:column;position:relative}
+
+/* ---------- Header ---------- */
+header{
+  display:flex;align-items:center;gap:12px;padding:14px 18px;
+  background:linear-gradient(120deg,var(--shu),var(--shu-dark));color:#fff;
+  position:sticky;top:0;z-index:20;
+}
+header .logo{width:40px;height:40px;border-radius:50%;background:#fff;color:var(--shu);
+  display:grid;place-items:center;font-size:22px;font-weight:700;flex:none;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header h1{font-size:17px;margin:0;line-height:1.1}
+header .sub{font-size:11.5px;opacity:.9;margin-top:2px}
+header .spacer{flex:1}
+header button.icon{background:rgba(255,255,255,.18);border:0;color:#fff;width:38px;height:38px;border-radius:12px;font-size:18px;cursor:pointer}
+
+/* ---------- Screens ---------- */
+main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.screen{display:none;padding:16px 16px 90px}
+.screen.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- Home ---------- */
+.hero{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:16px;
+  border:1px solid var(--line)}
+.hero .greet{font-size:18px;font-weight:700}
+.hero .greet small{color:var(--muted);font-weight:400;font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
+.kpi{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:center}
+.kpi b{display:block;font-size:20px}
+.kpi span{font-size:10.5px;color:var(--muted)}
+.progressbar{height:10px;border-radius:6px;background:var(--line);overflow:hidden;margin-top:12px}
+.progressbar > i{display:block;height:100%;background:linear-gradient(90deg,var(--shu),var(--sakura))}
+
+.sectitle{font-size:13px;color:var(--muted);margin:18px 4px 10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.modes{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:620px){.modes{grid-template-columns:repeat(3,1fr)}}
+.mode{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;cursor:pointer;
+  box-shadow:var(--shadow);transition:transform .12s;display:flex;flex-direction:column;gap:8px}
+.mode:active{transform:scale(.97)}
+.mode .emo{font-size:26px}
+.mode b{font-size:15px}
+.mode span{font-size:11.5px;color:var(--muted)}
+.mode.accent-shu{border-top:3px solid var(--shu)}
+.mode.accent-ai{border-top:3px solid var(--ai)}
+.mode.accent-matcha{border-top:3px solid var(--matcha)}
+.mode.accent-sakura{border-top:3px solid var(--sakura)}
+
+/* ---------- Chat ---------- */
+#chatScreen{display:none;flex-direction:column;flex:1;padding:0}
+#chatScreen.active{display:flex}
+.chat-top{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);
+  background:var(--card);position:sticky;top:0;z-index:5}
+.chat-top button.back{background:none;border:0;font-size:22px;color:var(--text);cursor:pointer;padding:4px}
+.chat-top .t{font-weight:700;font-size:15px}
+.chat-top .t small{display:block;color:var(--muted);font-size:11px;font-weight:400}
+.messages{flex:1;overflow-y:auto;padding:16px 14px 12px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:82%;padding:11px 14px;border-radius:16px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+.msg.tomoe{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:5px;align-self:flex-start;box-shadow:var(--shadow)}
+.msg.me{background:linear-gradient(120deg,var(--shu),var(--shu-dark));color:#fff;border-bottom-right-radius:5px;align-self:flex-end}
+.msg.typing{color:var(--muted);font-style:italic}
+.composer{display:flex;gap:8px;padding:10px 12px calc(10px + var(--safe-b));border-top:1px solid var(--line);background:var(--card)}
+.composer textarea{flex:1;resize:none;border:1px solid var(--line);border-radius:20px;padding:11px 14px;font:inherit;
+  font-size:15px;background:var(--bg);color:var(--text);max-height:120px;min-height:44px}
+.composer button{border:0;border-radius:50%;width:44px;height:44px;background:var(--shu);color:#fff;font-size:19px;cursor:pointer;flex:none}
+.composer button:disabled{opacity:.4}
+.composer #mic{background:var(--card);border:1px solid var(--line);font-size:20px}
+.composer #mic.rec{background:var(--shu);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(228,0,43,.5)}50%{box-shadow:0 0 0 8px rgba(228,0,43,0)}}
+#modeSwitch{border:1px solid rgba(255,255,255,.5);background:transparent;color:inherit;border-radius:10px;padding:5px 6px;font:inherit;font-size:12px;max-width:130px}
+#modeSwitch option{color:#111}
+/* palavra em japonês tocável (fala ao tocar) */
+.jp{cursor:pointer;border-bottom:1px dotted currentColor;padding-bottom:1px}
+.jp:active{background:var(--sakura);color:#111;border-radius:3px}
+.speak{display:inline-block;margin-left:6px;cursor:pointer;opacity:.6;font-size:13px;vertical-align:middle}
+.speak:active{opacity:1}
+
+/* ---------- Settings / Onboarding ---------- */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.field input,.field select{width:100%;padding:12px;border:1px solid var(--line);border-radius:12px;font:inherit;
+  font-size:15px;background:var(--card);color:var(--text)}
+.hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+.hint a{color:var(--ai)}
+.btn{display:block;width:100%;padding:14px;border:0;border-radius:14px;background:var(--shu);color:#fff;
+  font-size:16px;font-weight:700;cursor:pointer;margin-top:8px}
+.btn.ghost{background:transparent;color:var(--shu);border:1px solid var(--shu)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);margin-bottom:16px}
+.center{text-align:center}
+.bigmark{font-size:56px;line-height:1;margin-bottom:6px}
+
+/* ---------- Bottom nav ---------- */
+nav.tabbar{position:sticky;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--line);
+  padding-bottom:var(--safe-b);z-index:20}
+nav.tabbar button{flex:1;background:none;border:0;padding:9px 0 8px;color:var(--muted);font-size:10.5px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:3px}
+nav.tabbar button .i{font-size:20px}
+nav.tabbar button.active{color:var(--shu)}
+.hidden{display:none!important}
+.pill{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;margin:3px 4px 0 0}
+.warn{background:#fff6f6;border:1px solid #f2c9c9;color:#9a2b2b;border-radius:12px;padding:10px 12px;font-size:12.5px}
+@media (prefers-color-scheme: dark){.warn{background:#2a1414;border-color:#5a2a2a;color:#f0b7b7}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="logo">巴</div>
+    <div>
+      <h1>Tomoe</h1>
+      <div class="sub" id="hdrsub">Sua professora de japonês</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="icon" id="themeBtn" title="Tema">◐</button>
+  </header>
+
+  <main>
+    <!-- ONBOARDING -->
+    <section class="screen" id="onboardScreen">
+      <div class="card center">
+        <div class="bigmark">巴</div>
+        <h2 style="margin:.2em 0">はじめまして！</h2>
+        <p style="color:var(--muted);font-size:14px;margin-top:4px">
+          Eu sou a <b>Tomoe</b>, sua professora particular de japonês.<br>Vamos nos conhecer?
+        </p>
+      </div>
+      <div class="card">
+        <div class="field">
+          <label>Como você quer que eu te chame?</label>
+          <input id="obName" placeholder="Seu nome" />
+        </div>
+        <div class="field">
+          <label>Chave de acesso do Gemini (Google)</label>
+          <input id="obKey" placeholder="Cole aqui sua API key" autocomplete="off" />
+          <div class="hint">
+            É grátis. Pegue em <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>,
+            clique em “Create API key” e cole aqui. Ela fica salva só no seu aparelho.
+          </div>
+        </div>
+        <div class="warn">🔒 Sua chave nunca sai deste dispositivo — o app fala com o Google direto do seu navegador.</div>
+        <button class="btn" id="obStart">Começar 🎌</button>
+      </div>
+    </section>
+
+    <!-- HOME -->
+    <section class="screen" id="homeScreen">
+      <div class="hero">
+        <div class="greet" id="homeGreet">Olá! 👋</div>
+        <div class="progressbar"><i id="homeProg" style="width:0%"></i></div>
+        <div class="kpis">
+          <div class="kpi"><b id="kNivel">N5</b><span>Nível JLPT</span></div>
+          <div class="kpi"><b id="kSeq">0</b><span>🔥 Sequência</span></div>
+          <div class="kpi"><b id="kDias">0</b><span>Dias estudando</span></div>
+          <div class="kpi"><b id="kVocab">0</b><span>Palavras</span></div>
+          <div class="kpi"><b id="kKanji">0</b><span>Kanjis</span></div>
+          <div class="kpi"><b id="kXp">0</b><span>XP</span></div>
+        </div>
+      </div>
+
+      <div class="sectitle">O que vamos fazer hoje?</div>
+      <div class="modes" id="modeGrid"></div>
+    </section>
+
+    <!-- CHAT -->
+    <section id="chatScreen">
+      <div class="chat-top">
+        <button class="back" id="chatBack">‹</button>
+        <div class="t" id="chatTitle">Conversa<small id="chatSub">com a Tomoe</small></div>
+        <div class="spacer" style="flex:1"></div>
+        <select id="modeSwitch" title="Atividade"></select>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="composer">
+        <button id="mic" title="Falar em japonês">🎤</button>
+        <textarea id="input" rows="1" placeholder="Escreva em português ou japonês…"></textarea>
+        <button id="send" title="Enviar">➤</button>
+      </div>
+    </section>
+
+    <!-- DASHBOARD -->
+    <section class="screen" id="dashScreen">
+      <div class="sectitle">Seu progresso</div>
+      <div class="card" id="dashCard"></div>
+      <div class="sectitle">Suas dificuldades</div>
+      <div class="card" id="dashWeak"><span style="color:var(--muted);font-size:13px">Ainda vou te conhecer melhor. 😊</span></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="screen" id="setScreen">
+      <div class="sectitle">Ajustes</div>
+      <div class="card">
+        <div class="field"><label>Seu nome</label><input id="setName" /></div>
+        <div class="field"><label>Chave de acesso do Gemini</label><input id="setKey" autocomplete="off" /></div>
+        <div class="field"><label>Modelo de IA</label>
+          <select id="setModel">
+            <option value="gemini-flash-latest">gemini-flash-latest (recomendado)</option>
+          </select>
+          <button class="btn ghost" id="setFetch" style="margin-top:8px">🔄 Buscar modelos que minha chave aceita</button>
+          <div class="hint">Se der erro de modelo, toque no botão acima: o app pergunta ao Google quais modelos a sua chave suporta e preenche a lista.</div>
+        </div>
+        <button class="btn" id="setSave">Salvar</button>
+      </div>
+      <div class="sectitle">Dados</div>
+      <div class="card">
+        <p class="hint">Todo o seu progresso fica guardado só neste aparelho.</p>
+        <button class="btn ghost" id="setReset">Apagar tudo e recomeçar</button>
+      </div>
+      <div class="center hint" style="margin-top:10px">Tomoe 巴 · v1.0</div>
+    </section>
+  </main>
+
+  <nav class="tabbar" id="tabbar">
+    <button data-scr="homeScreen" class="active"><span class="i">🏠</span>Início</button>
+    <button data-scr="dashScreen"><span class="i">📊</span>Progresso</button>
+    <button data-scr="setScreen"><span class="i">⚙️</span>Ajustes</button>
+  </nav>
+</div>
+
+<script>
+/* =========================================================
+   TOMOE — app pessoal (single file). IA: Gemini via navegador.
+   ========================================================= */
+const LS = {
+  get:(k,d)=>{try{const v=localStorage.getItem('tomoe_'+k);return v?JSON.parse(v):d}catch(e){return d}},
+  set:(k,v)=>localStorage.setItem('tomoe_'+k,JSON.stringify(v)),
+  del:(k)=>localStorage.removeItem('tomoe_'+k)
+};
+
+/* ---------- Prompt: núcleo da Tomoe ---------- */
+const CORE = `Você é TOMOE (巴), professora particular de japonês para brasileiros — nunca um assistente genérico. Acompanha UM aluno por meses/anos.
+
+BACKGROUND: 28 anos, japonesa. Mora em Nakano (Tóquio), cresceu em Kyoto (conhece o Kansai-ben), estudou Linguística na Waseda. Conhece Kyoto, Osaka, Nara, Tóquio, Hakone, Kamakura; NÃO conhece Hokkaido nem Okinawa (seja honesta sobre isso, nunca invente). Gosta de anime/mangá, cafés, trens e matchá. Usa esse background para ensinar japonês REAL, não de livro.
+
+PERSONALIDADE: inteligente, curiosa, bem-humorada, calorosa, elegante, paciente. Conversa como amiga próxima, não como Wikipedia. Frases naturais, humor leve, emojis com moderação. Charme vem da inteligência, NUNCA de insinuação/romance. Nunca humilha erros.
+
+VOCÊ NEGA ser um "modelo de linguagem": se perguntarem, responde de dentro do personagem.
+
+MISSÃO: levar o aluno do zero ao JLPT N1, focando em (1) viajar sozinho pelo Japão e (2) entender anime. Sempre distinga o que é comum em anime mas incomum na vida real.
+
+MÉTODO (invisível, não cite os nomes): active recall, repetição espaçada, input compreensível (i+1), fazer o aluno PRODUZIR desde já, chunking (blocos prontos), Pareto (o mais frequente primeiro), contexto real, shadowing. NÃO entregue a resposta pronta quando o aluno pode chegar sozinho — dê pistas. Explique do simples ao complexo. Corrija assim: original → correção → forma mais natural → explicação. Quando útil, mostre 3 registros (formal/natural/entre amigos). Exemplos reais, no mínimo 3. Erros são dados, nunca fracasso.
+
+ALFABETIZAÇÃO (híbrido): introduza hiragana desde já; use romaji só como apoio, SEMPRE ao lado do kana (ありがとう / arigatou), sumindo em ~1-2 semanas.
+
+HONESTIDADE: nunca invente regras, palavras ou etimologias. Em dúvida, diga. Não presuma o que o aluno sabe sem evidência.
+
+CONDUÇÃO: você decide o que estudar, nunca espera o aluno pedir. Sempre indique o próximo passo. Adapte ao estado dele (cansado→leve; animado→acelere). Termine cada aula com resumo + próxima missão + incentivo.
+
+TEMPERO NATURAL: misture, sem forçar, curiosidades reais sobre lugares do Japão (para preparar a viagem), anime, culinária japonesa e cultura. Seja curiosa sobre a vida do aluno no BRASIL — pergunte sobre o dia dele, gostos, comida brasileira, trabalho — tanto para conhecê-lo quanto para comparar as duas culturas. Uma conversa por vez; não despeje tudo de uma vez.
+
+VOZ (recursos do app): o app consegue FALAR o japonês que você escreve — o aluno pode TOCAR em qualquer palavra em japonês para ouvi-la, então escreva o japonês normalmente (kana/kanji) que ele pode ouvir. O aluno também tem um MICROFONE: quando a mensagem dele começar com "🎤", é a transcrição do que ele FALOU em voz alta — avalie a pronúncia por como ficou a transcrição.
+
+FORMATO: respostas de chat, curtas e conversadas — NUNCA textões. Uma ideia por vez. Faça perguntas e espere a resposta (nunca responda pelo aluno).`;
+
+/* ---------- Modos (atividades dentro da MESMA conversa contínua) ---------- */
+const MODES = {
+  aula:{emo:"📚",titulo:"Aula",sub:"seguir o plano de estudos",accent:"shu",
+    prompt:`ATIVIDADE ATUAL: AULA. Aqui você SEGUE o currículo/plano de estudos (as matérias na ordem certa, respeitando pré-requisitos e o nível atual do aluno). Cumprimente, veja o que está pendente, proponha a MISSÃO DE HOJE (curta e clara) e ensine o próximo conteúdo planejado + revisão. Pode temperar a aula com viagem, anime, culinária e cultura para dar contexto, mas sem perder o fio do roteiro. Termine com resumo e próxima missão.`},
+  batepapo:{emo:"💬",titulo:"Bate-papo",sub:"conversar livremente",accent:"ai",
+    prompt:`ATIVIDADE ATUAL: BATE-PAPO. Aqui NÃO precisa seguir o roteiro de estudos. Converse naturalmente como uma amiga japonesa sobre os temas que surgirem (Japão, viagem, anime, culinária, cultura, o dia do aluno). Vá ensinando no meio da conversa: apresente uma palavra ou expressão útil aqui e ali, corrija com carinho quando ele errar e dê dicas rápidas — sem transformar em aula formal. Faça só o SEU lado e espere a resposta.`},
+  pronuncia:{emo:"🎤",titulo:"Pronúncia",sub:"treinar a fala (com microfone)",accent:"matcha",
+    prompt:`ATIVIDADE ATUAL: PRONÚNCIA. Proponha palavras/frases curtas para o aluno falar em voz alta (ele usa o microfone 🎤 do app). Quando a mensagem dele vier marcada com "🎤", é a TRANSCRIÇÃO do que ele falou: compare com o alvo — se bateu, elogie ("deu pra entender perfeitamente!"); se saiu diferente, aponte com carinho qual som escorregou (ex.: "saiu 'suki' em vez de 'tsuki', capriche no つ") e peça pra repetir. Explique pitch, ritmo e sons difíceis (つ, o R japonês, ふ). Lembre o aluno que ele pode TOCAR nas palavras em japonês que você escrever para ouvir a pronúncia.`},
+  simulado:{emo:"📝",titulo:"Simulado JLPT",sub:"testar conhecimento",accent:"sakura",
+    prompt:`ATIVIDADE ATUAL: SIMULADO. Aplique um mini quiz no estilo JLPT do nível atual do aluno (vocabulário, gramática, leitura). Uma questão por vez, espere a resposta. NUNCA dê só a nota: explique cada erro. No fim, resuma os pontos fracos e registre-os.`}
+};
+
+/* ---------- Ficha padrão ---------- */
+function fichaDefault(){return{
+  nome:"", nivel:"N5", progressoNivel:0, sequencia:0, diasEstudando:0,
+  xp:0, palavras:0, kanjis:0, gramaticas:0, precisao:null,
+  dificuldades:[], ultimaData:null
+};}
+
+let ficha = LS.get('ficha', null);
+let memoria = LS.get('memoria', {resumo:"", ondeParamos:"", decisoes:[]});
+let currentMode = null;
+let history = LS.get('history', []);   // conversa contínua [{role, text, hidden?}]
+let lastMode = LS.get('lastMode','');
+let sending = false;
+/* guarda o histórico COMPLETO — nada é apagado (o aluno pode reler tudo). */
+function saveHistory(){ try{ LS.set('history', history); }catch(e){ /* localStorage cheio: mantém em memória */ } }
+
+/* ---------- util ---------- */
+const $ = s=>document.querySelector(s);
+const el = id=>document.getElementById(id);
+
+function applyTheme(){
+  const t = LS.get('theme','auto');
+  if(t==='auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme',t);
+}
+el('themeBtn').onclick=()=>{
+  const order=['auto','light','dark']; let t=LS.get('theme','auto');
+  t=order[(order.indexOf(t)+1)%3]; LS.set('theme',t); applyTheme();
+};
+applyTheme();
+
+/* ---------- navegação ---------- */
+function showScreen(id){
+  document.querySelectorAll('.screen,#chatScreen').forEach(s=>s.classList.remove('active'));
+  el(id).classList.add('active');
+  document.querySelectorAll('#tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.scr===id));
+  el('tabbar').classList.toggle('hidden', id==='chatScreen'||id==='onboardScreen');
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('#tabbar button').forEach(b=>b.onclick=()=>showScreen(b.dataset.scr));
+
+/* ---------- render Home ---------- */
+function renderHome(){
+  const nome = ficha?.nome || "";
+  const hrs = new Date().getHours();
+  const saud = hrs<12?"Bom dia":hrs<18?"Boa tarde":"Boa noite";
+  el('homeGreet').innerHTML = `${saud}${nome?', '+nome:''}! <small>Pronto para mais uma missão?</small>`;
+  el('hdrsub').textContent = nome?('Olá, '+nome):'Sua professora de japonês';
+  el('kNivel').textContent = ficha.nivel;
+  el('kSeq').textContent = ficha.sequencia;
+  el('kDias').textContent = ficha.diasEstudando;
+  el('kVocab').textContent = ficha.palavras;
+  el('kKanji').textContent = ficha.kanjis;
+  el('kXp').textContent = ficha.xp;
+  el('homeProg').style.width = (ficha.progressoNivel||0)+'%';
+}
+function renderModes(){
+  el('modeGrid').innerHTML='';
+  Object.entries(MODES).forEach(([k,m])=>{
+    const d=document.createElement('div');
+    d.className='mode accent-'+m.accent;
+    d.innerHTML=`<div class="emo">${m.emo}</div><b>${m.titulo}</b><span>${m.sub}</span>`;
+    d.onclick=()=>openChat(k);
+    el('modeGrid').appendChild(d);
+  });
+}
+function renderDash(){
+  const f=ficha;
+  el('dashCard').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:12px;color:var(--muted)">Nível atual</div><div style="font-size:26px;font-weight:700">${f.nivel} · ${f.progressoNivel||0}%</div></div>
+      <div style="text-align:right"><div style="font-size:12px;color:var(--muted)">Sequência</div><div style="font-size:22px">🔥 ${f.sequencia}</div></div>
+    </div>
+    <div class="progressbar" style="margin-top:12px"><i style="width:${f.progressoNivel||0}%"></i></div>
+    <div class="kpis" style="margin-top:14px">
+      <div class="kpi"><b>${f.palavras}</b><span>Palavras</span></div>
+      <div class="kpi"><b>${f.kanjis}</b><span>Kanjis</span></div>
+      <div class="kpi"><b>${f.gramaticas}</b><span>Gramáticas</span></div>
+      <div class="kpi"><b>${f.diasEstudando}</b><span>Dias</span></div>
+      <div class="kpi"><b>${f.xp}</b><span>XP</span></div>
+      <div class="kpi"><b>${f.precisao!=null?f.precisao+'%':'—'}</b><span>Precisão</span></div>
+    </div>`;
+  el('dashWeak').innerHTML = (f.dificuldades&&f.dificuldades.length)
+    ? f.dificuldades.map(d=>`<span class="pill">${d}</span>`).join('')
+    : `<span style="color:var(--muted);font-size:13px">Ainda vou te conhecer melhor. 😊</span>`;
+}
+
+/* ---------- Chat ---------- */
+// preenche o seletor de atividade no topo do chat
+function fillModeSwitch(){
+  const s=el('modeSwitch'); s.innerHTML='';
+  Object.entries(MODES).forEach(([k,m])=>{
+    const o=document.createElement('option'); o.value=k; o.textContent=m.emo+' '+m.titulo; s.appendChild(o);
+  });
+}
+function openChat(modeKey){
+  const first = history.length===0;
+  const switching = !first && modeKey!==lastMode;
+  currentMode = modeKey;
+  const m = MODES[modeKey];
+  el('chatTitle').firstChild.textContent = m.titulo;
+  el('chatSub').textContent = m.emo+' com a Tomoe';
+  el('modeSwitch').value = modeKey;
+  showScreen('chatScreen');
+  renderHistory();
+  el('input').focus();
+  if(first){
+    sendToTomoe("(o aluno abriu a atividade "+m.titulo+". Cumprimente e comece conforme a atividade.)", true);
+  } else if(switching){
+    sendToTomoe("(o aluno mudou para a atividade "+m.titulo+" ("+m.sub+"). Continue de onde vocês estavam, sem se reapresentar; apenas faça a transição para essa atividade.)", true);
+  }
+  lastMode = modeKey; LS.set('lastMode', lastMode);
+}
+// trocar de atividade sem sair do chat
+el('modeSwitch').onchange = e=> openChat(e.target.value);
+el('chatBack').onclick=()=>{ endSession(); showScreen('homeScreen'); renderHome(); };
+
+function renderHistory(){
+  el('messages').innerHTML='';
+  history.forEach(h=>{ if(!h.hidden) addMsg(h.text, h.role==='user'?'me':'tomoe'); });
+  el('messages').scrollTop=el('messages').scrollHeight;
+}
+
+/* separa a mensagem em pedaços de japonês (tocáveis) e o resto */
+const JP_RE = /[぀-ヿ㐀-䶿一-龯々ー]+/g;
+function addMsg(text, who){
+  const d=document.createElement('div');
+  d.className='msg '+who;
+  if(who.startsWith('tomoe') && !who.includes('typing')){
+    // monta com trechos de japonês clicáveis (falam ao tocar)
+    let last=0, m, hasJP=false;
+    text.replace(JP_RE,(match,idx)=>{
+      if(idx>last) d.appendChild(document.createTextNode(text.slice(last,idx)));
+      const sp=document.createElement('span'); sp.className='jp'; sp.textContent=match;
+      sp.title='Tocar para ouvir'; sp.onclick=()=>speak(match);
+      d.appendChild(sp); last=idx+match.length; hasJP=true; return match;
+    });
+    if(last<text.length) d.appendChild(document.createTextNode(text.slice(last)));
+    if(hasJP){ // botão para ouvir tudo em japonês
+      const b=document.createElement('span'); b.className='speak'; b.textContent='🔊'; b.title='Ouvir em japonês';
+      b.onclick=()=>{ const jp=(text.match(JP_RE)||[]).join('。'); if(jp) speak(jp); };
+      d.appendChild(b);
+    }
+  } else {
+    d.textContent=text;
+  }
+  el('messages').appendChild(d);
+  el('messages').scrollTop=el('messages').scrollHeight;
+  return d;
+}
+
+/* ---------- VOZ: Tomoe fala (Text-to-Speech do navegador, grátis) ---------- */
+let jpVoice=null;
+function pickVoice(){
+  const vs=speechSynthesis.getVoices();
+  jpVoice = vs.find(v=>/ja[-_]?JP/i.test(v.lang)) || vs.find(v=>/^ja/i.test(v.lang)) || null;
+}
+if('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
+function speak(txt){
+  if(!('speechSynthesis' in window)){ return; }
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(txt);
+  u.lang='ja-JP'; if(jpVoice) u.voice=jpVoice; u.rate=0.9;
+  speechSynthesis.speak(u);
+}
+
+/* ---------- VOZ: microfone (Speech-to-Text do navegador, grátis) ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recog=null, recording=false;
+function setupMic(){
+  const micBtn=el('mic');
+  if(!SR){ micBtn.style.display='none'; return; } // navegador sem suporte (ex.: Firefox/iOS antigo)
+  recog=new SR(); recog.lang='ja-JP'; recog.interimResults=false; recog.maxAlternatives=1;
+  recog.onresult=e=>{
+    const said=e.results[0][0].transcript;
+    // marca com 🎤 para a Tomoe saber que foi FALADO (avaliar pronúncia)
+    el('input').value = '🎤 '+said;
+  };
+  recog.onend=()=>{ recording=false; micBtn.classList.remove('rec'); };
+  recog.onerror=()=>{ recording=false; micBtn.classList.remove('rec'); };
+  micBtn.onclick=()=>{
+    if(recording){ recog.stop(); return; }
+    try{ recog.start(); recording=true; micBtn.classList.add('rec'); }catch(e){}
+  };
+}
+
+function buildSystemPrompt(){
+  const f=ficha;
+  const fichaTxt = `\n\n[FICHA_DO_ALUNO]\nnome: ${f.nome||'(desconhecido)'}\nnivel: ${f.nivel} (${f.progressoNivel||0}%)\ndias: ${f.diasEstudando}, sequencia: ${f.sequencia}, xp: ${f.xp}\npalavras: ${f.palavras}, kanjis: ${f.kanjis}, gramaticas: ${f.gramaticas}\ndificuldades: ${(f.dificuldades||[]).join(', ')||'nenhuma registrada'}`;
+  const memTxt = (memoria.resumo||memoria.ondeParamos)
+    ? `\n\n[MEMORIA_DE_CONVERSA]\nresumo: ${memoria.resumo||'—'}\nonde_paramos: ${memoria.ondeParamos||'—'}\ndecisoes: ${(memoria.decisoes||[]).join('; ')||'—'}`
+    : `\n\n[MEMORIA_DE_CONVERSA] (primeiro contato — se a ficha não tiver nome/objetivos, faça uma breve entrevista inicial de forma leve.)`;
+  const upd = `\n\nAO FIM de uma sessão de estudo, e SÓ quando houver mudança real, acrescente na ÚLTIMA linha um bloco técnico (o aluno não vê) exatamente assim:\n<<TOMOE>>{"palavras":+N,"kanjis":+N,"gramaticas":+N,"xp":+N,"progressoNivel":P,"dificuldades":["..."],"resumo":"...","ondeParamos":"..."}<<END>>\nUse apenas os campos que mudaram. Números com + são incrementos. Não comente esse bloco.`;
+  return CORE + "\n\n"+ MODES[currentMode].prompt + fichaTxt + memTxt + upd;
+}
+
+async function sendToTomoe(userText, isSystemOpen){
+  if(sending) return;
+  const key = LS.get('apikey','');
+  if(!key){ addMsg("⚠️ Configure sua chave do Gemini em Ajustes.","tomoe"); return; }
+  sending=true; el('send').disabled=true;
+  if(!isSystemOpen){ addMsg(userText,'me'); }
+  history.push({role:'user', text:userText, hidden:!!isSystemOpen});
+  saveHistory();
+  const typing = addMsg("Tomoe está digitando…","tomoe typing");
+
+  const body = {
+    system_instruction:{parts:[{text:buildSystemPrompt()}]},
+    // envia só as últimas ~24 falas para não pesar/encarecer (o resto vive na memória)
+    contents: history.slice(-24).map(h=>({role:h.role==='user'?'user':'model',parts:[{text:h.text}]})),
+    generationConfig:{temperature:0.8,maxOutputTokens:1200}
+  };
+  const callGemini = async ()=>{
+    const model = LS.get('model','gemini-flash-latest');
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
+    const r = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    return { r, data: await r.json() };
+  };
+  const isModelError = (d,status)=> status===404 ||
+    /model/i.test(d?.error?.message||'') && /not (found|available|supported)|no longer|update your code/i.test(d?.error?.message||'');
+  try{
+    let { r, data } = await callGemini();
+    // auto-recuperação: se o modelo salvo ficou inválido, descobre um novo e tenta 1x
+    if(!r.ok && isModelError(data, r.status)){
+      const novo = await fetchModels(key,{silent:true});
+      if(novo){ ({ r, data } = await callGemini()); }
+    }
+    typing.remove();
+    if(!r.ok){
+      addMsg("😥 Deu um erro ao falar com o Gemini: "+(data.error?.message||r.status)+"\n\nDica: em Ajustes, toque em “Buscar modelos que minha chave aceita”.","tomoe");
+      sending=false; el('send').disabled=false; return;
+    }
+    let txt = data.candidates?.[0]?.content?.parts?.map(p=>p.text).join('') || "…";
+    txt = extractUpdate(txt);
+    history.push({role:'model', text:txt.trim()});
+    saveHistory();
+    addMsg(txt.trim(),'tomoe');
+  }catch(e){
+    typing.remove();
+    addMsg("😥 Sem conexão com o Gemini agora. Verifique sua internet.","tomoe");
+  }
+  sending=false; el('send').disabled=false;
+}
+
+/* extrai bloco <<TOMOE>>{...}<<END>> e atualiza a ficha */
+function extractUpdate(txt){
+  const m = txt.match(/<<TOMOE>>([\s\S]*?)<<END>>/);
+  if(!m) return txt;
+  try{
+    const u = JSON.parse(m[1].trim());
+    const inc=(a,b)=>Math.max(0,(a||0)+(b||0));
+    if(u.palavras) ficha.palavras=inc(ficha.palavras,u.palavras);
+    if(u.kanjis) ficha.kanjis=inc(ficha.kanjis,u.kanjis);
+    if(u.gramaticas) ficha.gramaticas=inc(ficha.gramaticas,u.gramaticas);
+    if(u.xp) ficha.xp=inc(ficha.xp,u.xp);
+    if(typeof u.progressoNivel==='number') ficha.progressoNivel=Math.min(100,Math.max(0,u.progressoNivel));
+    if(Array.isArray(u.dificuldades)&&u.dificuldades.length){
+      const set=new Set([...(ficha.dificuldades||[]),...u.dificuldades]); ficha.dificuldades=[...set].slice(-8);
+    }
+    if(u.resumo) memoria.resumo=u.resumo;
+    if(u.ondeParamos) memoria.ondeParamos=u.ondeParamos;
+    saveAll();
+  }catch(e){}
+  return txt.replace(/<<TOMOE>>[\s\S]*?<<END>>/,'').trim();
+}
+
+/* conta 1 dia de estudo por dia-calendário e sequência */
+function markStudyDay(){
+  const today = new Date().toISOString().slice(0,10);
+  if(ficha.ultimaData===today) return;
+  const yesterday = new Date(Date.now()-864e5).toISOString().slice(0,10);
+  ficha.sequencia = (ficha.ultimaData===yesterday)? (ficha.sequencia+1) : 1;
+  ficha.diasEstudando += 1;
+  ficha.ultimaData = today;
+  saveAll();
+}
+function endSession(){ if(history.length>1) markStudyDay(); }
+
+function saveAll(){ LS.set('ficha',ficha); LS.set('memoria',memoria); }
+
+/* ---------- enviar mensagem ---------- */
+function doSend(){
+  const t = el('input').value.trim();
+  if(!t||sending) return;
+  el('input').value=''; el('input').style.height='auto';
+  sendToTomoe(t,false);
+}
+el('send').onclick=doSend;
+el('input').addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend();} });
+el('input').addEventListener('input',function(){ this.style.height='auto'; this.style.height=Math.min(120,this.scrollHeight)+'px'; });
+
+/* ---------- Descoberta de modelos ---------- */
+/* Pergunta ao Google quais modelos a chave aceita e preenche o <select>.
+   Retorna o modelo escolhido, ou null em erro. */
+async function fetchModels(key, {silent=false}={}){
+  key = key || LS.get('apikey','');
+  if(!key){ if(!silent) alert('Cole a chave primeiro.'); return null; }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}&pageSize=1000`;
+  try{
+    const r = await fetch(url); const d = await r.json();
+    if(!r.ok){ if(!silent) alert('Erro ao buscar modelos: '+(d.error?.message||r.status)); return null; }
+    let list = (d.models||[])
+      .filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent'))
+      .map(m=>m.name.replace('models/',''))
+      .filter(n=>/^gemini/.test(n) && !/embedding|aqa|vision-latest/.test(n));
+    if(!list.length){ if(!silent) alert('Nenhum modelo de conversa encontrado para esta chave.'); return null; }
+    // ordena: aliases "latest" primeiro, depois maior versão, flash antes de pro
+    const score = n => (/latest/.test(n)?1000:0) + (/flash/.test(n)?100:0) + (parseFloat((n.match(/(\d+\.?\d*)/)||[])[1]||0)*10) - (/lite|thinking|exp|preview/.test(n)?5:0);
+    list.sort((a,b)=>score(b)-score(a));
+    // preenche o select
+    const sel = el('setModel'); sel.innerHTML='';
+    list.forEach(n=>{ const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+    // escolhe: mantém o salvo se ainda existir, senão o melhor da lista
+    const saved = LS.get('model','');
+    const chosen = list.includes(saved) ? saved : list[0];
+    sel.value = chosen; LS.set('model', chosen);
+    if(!silent) alert('Modelos atualizados! ✅ Usando: '+chosen);
+    return chosen;
+  }catch(e){ if(!silent) alert('Sem conexão para buscar modelos.'); return null; }
+}
+el('setFetch').onclick=()=>fetchModels();
+
+/* ---------- Onboarding ---------- */
+el('obStart').onclick=async()=>{
+  const name=el('obName').value.trim();
+  const key=el('obKey').value.trim();
+  if(!key){ alert('Cole sua chave do Gemini para começar. 😊'); return; }
+  const btn=el('obStart'); btn.disabled=true; btn.textContent='Conectando…';
+  ficha = fichaDefault(); ficha.nome=name;
+  LS.set('apikey',key); LS.set('model','gemini-flash-latest');
+  // detecta automaticamente um modelo válido para esta chave
+  await fetchModels(key,{silent:true});
+  saveAll();
+  btn.disabled=false; btn.textContent='Começar 🎌';
+  boot();
+};
+
+/* ---------- Settings ---------- */
+function fillSettings(){
+  el('setName').value = ficha?.nome||'';
+  el('setKey').value = LS.get('apikey','');
+  const saved = LS.get('model','gemini-flash-latest');
+  const sel = el('setModel');
+  if(![...sel.options].some(o=>o.value===saved)){
+    const o=document.createElement('option'); o.value=saved; o.textContent=saved; sel.appendChild(o);
+  }
+  sel.value = saved;
+}
+el('setSave').onclick=()=>{
+  ficha.nome=el('setName').value.trim();
+  LS.set('apikey',el('setKey').value.trim());
+  LS.set('model',el('setModel').value);
+  saveAll(); renderHome(); alert('Salvo! ✅');
+};
+el('setReset').onclick=()=>{
+  if(confirm('Isso apaga TODO o seu progresso e a chave. Tem certeza?')){
+    ['apikey','model','ficha','memoria','theme','history','lastMode'].forEach(LS.del); location.reload();
+  }
+};
+
+/* ---------- boot ---------- */
+function boot(){
+  fillModeSwitch(); setupMic();
+  const key = LS.get('apikey','');
+  if(!key || !ficha){ showScreen('onboardScreen'); el('tabbar').classList.add('hidden'); return; }
+  renderHome(); renderModes(); renderDash(); fillSettings();
+  showScreen('homeScreen');
+}
+// re-render dash/settings quando trocar de aba
+new MutationObserver(()=>{ if(el('dashScreen').classList.contains('active')) renderDash();
+  if(el('setScreen').classList.contains('active')) fillSettings(); })
+  .observe(document.body,{attributes:true,subtree:true,attributeFilter:['class']});
+
+boot();
+</script>
+</body>
+</html>
