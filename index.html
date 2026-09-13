@@ -288,7 +288,9 @@ MISSÃO: levar o aluno do zero ao JLPT N1, focando em (1) viajar sozinho pelo Ja
 
 MÉTODO (invisível, não cite os nomes): active recall, repetição espaçada, input compreensível (i+1), fazer o aluno PRODUZIR desde já, chunking (blocos prontos), Pareto (o mais frequente primeiro), contexto real, shadowing. NÃO entregue a resposta pronta quando o aluno pode chegar sozinho — dê pistas. Explique do simples ao complexo. Corrija assim: original → correção → forma mais natural → explicação. Quando útil, mostre 3 registros (formal/natural/entre amigos). Exemplos reais, no mínimo 3. Erros são dados, nunca fracasso.
 
-ALFABETIZAÇÃO (híbrido): introduza hiragana desde já; use romaji só como apoio, SEMPRE ao lado do kana (ありがとう / arigatou), sumindo em ~1-2 semanas.
+ALFABETIZAÇÃO (híbrido, regra padrão — MAS ver CURRÍCULO abaixo, que pode sobrescrever isso quando sincronizado com o Genki 1): introduza hiragana desde já; use romaji só como apoio, SEMPRE ao lado do kana (ありがとう / arigatou), sumindo em ~1-2 semanas.
+
+VALOR PEDAGÓGICO: busque sempre equilíbrio entre precisão, fluência e complexidade — nunca deixe o aluno ficar "certinho mas robótico" (só frases de livro) nem "fluente mas raso" (só frases simples pra sempre). Vá elevando a complexidade das estruturas conforme ele ganha confiança.
 
 HONESTIDADE: nunca invente regras, palavras ou etimologias. Em dúvida, diga. Não presuma o que o aluno sabe sem evidência.
 
@@ -318,11 +320,27 @@ const GENKI = [
   {n:11, tema:"desejos ('quero fazer'), dar exemplos de ações, já fez alguma vez"},
   {n:12, tema:"exagero ('demais'), sugestões, obrigação/necessidade, dúvida educada"}
 ];
+// ritmo de alfabetização REAL do Genki (extraído da seção "How to Use", com minhas palavras —
+// não é cópia do livro, é só a lógica de quando usar romaji/kanji, para não contradizer o professor)
+function genkiOrtografia(lesson){
+  if(lesson<=2) return "kana + romaji lado a lado (igual às Lições 1-2 do Genki — kanji ainda NÃO entra)";
+  return "kana + kanji, SEM romaji (a partir da Lição 3 o Genki para de dar romaji; a leitura do kanji vem em hiragana pequeno do lado, tipo furigana)";
+}
+// kanjis introduzidos em cada lição (lista de caracteres — fato/índice curricular, não é
+// texto autoral do livro; a Tomoe cria suas PRÓPRIAS explicações/mnemônicos para cada um)
+const KANJI_POR_LICAO = {
+  3:"一二三四五六七八九十百千万円時", 4:"日本人月火水木金土曜上下中半",
+  5:"山川元気天私今田女男見行食飲", 6:"東西南北口出右左分先生大学外国",
+  7:"京子小会社父母高校毎語文帰入", 8:"員新聞作仕事電車休言読思次何",
+  9:"午後前名白雨書友間家話少古知来", 10:"住正年売買町長道雪立自夜朝持",
+  11:"手紙好近明病院映画歌市所勉強有旅", 12:"昔々神早起牛使働連別度赤青色"
+};
 function genkiHint(lesson){
   if(!lesson) return "";
   const atual = GENKI.find(g=>g.n===lesson);
   const proximo = GENKI.find(g=>g.n===lesson+1);
-  return `\n\nCURRÍCULO (sincronizado com o Genki 1, livro do professor humano do aluno): o aluno está na Lição ${lesson}${atual?` — tema: ${atual.tema}`:''}. Use este ponto gramatical como o foco da aula, mas SEMPRE com exemplos, frases e exercícios SEUS (nunca reproduza diálogos, textos ou exercícios literais do livro didático — é material protegido). Reforce o que o professor já deve ter ensinado; ${proximo?`quando o aluno demonstrar domínio, você pode adiantar um gostinho da próxima (Lição ${proximo.n} — ${proximo.tema}), mas sem atropelar o professor.`:'este é o fim do conteúdo básico do Genki 1 — celebre com o aluno!'}`;
+  const kanjis = KANJI_POR_LICAO[lesson];
+  return `\n\nCURRÍCULO (sincronizado com o Genki 1, livro do professor humano do aluno — USO PRINCIPAL desta Tomoe para este aluno): o aluno está na Lição ${lesson}${atual?` — tema: ${atual.tema}`:''}. Use este ponto gramatical como o foco da aula, mas SEMPRE com exemplos, frases e exercícios SEUS (nunca reproduza diálogos, textos ou exercícios literais do livro didático — é material protegido). Escreva o japonês usando ${genkiOrtografia(lesson)}.${kanjis?` Os kanjis desta lição (ensine-os com seu próprio método — mnemônico, traços, exemplos): ${kanjis}`:''} Ordem de estudo do Genki: vocabulário e gramática ANTES do diálogo/conversação — siga essa lógica. Conclusão da Lição 12 ≈ nível JLPT N5 completo (use isso para calibrar o progressoNivel). Reforce o que o professor já deve ter ensinado; ${proximo?`quando o aluno demonstrar domínio, você pode adiantar um gostinho da próxima (Lição ${proximo.n} — ${proximo.tema}), mas sem atropelar o professor.`:'este é o fim do conteúdo básico do Genki 1 — celebre com o aluno!'}\n\nPRIORIDADE ABSOLUTA: se QUALQUER regra sua (currículo próprio, ordem de kanji/vocabulário por frequência, ritmo de romaji, prioridades de ensino, etc.) conflitar com o Genki 1 ou com o que este professor está ensinando, o GENKI SEMPRE VENCE. Você existe aqui para reforçar e apoiar o que o professor ensina — não para impor uma agenda paralela.`;
 }
 
 /* ---------- Modos (atividades dentro da MESMA conversa contínua) ---------- */
@@ -557,7 +575,10 @@ async function sendToTomoe(userText, isSystemOpen){
     system_instruction:{parts:[{text:buildSystemPrompt()}]},
     // envia só as últimas ~16 falas para economizar (o resto vive na memória)
     contents: history.slice(-16).map(h=>({role:h.role==='user'?'user':'model',parts:[{text:h.text}]})),
-    generationConfig:{temperature:0.8,maxOutputTokens:800}
+    // thinkingBudget:0 desliga o "raciocínio invisível" do modelo (ele consumia o limite de
+    // tokens sozinho e cortava a resposta visível pela metade); maxOutputTokens um pouco maior
+    // como margem de segurança.
+    generationConfig:{temperature:0.8,maxOutputTokens:1024,thinkingConfig:{thinkingBudget:0}}
   };
   const callGemini = async ()=>{
     const model = LS.get('model','gemini-flash-latest');
@@ -568,12 +589,20 @@ async function sendToTomoe(userText, isSystemOpen){
   const isModelError = (d,status)=> status===404 ||
     /model/i.test(d?.error?.message||'') && /not (found|available|supported)|no longer|update your code/i.test(d?.error?.message||'');
   const isRate = (d,status)=> status===429 || /quota|exhaust|rate.?limit|too many|resource has been/i.test(d?.error?.message||'');
+  const isAuth = (d,status)=> status===401 || status===403 ||
+    /api key not valid|invalid authentication credentials|oauth 2 access token|permission denied|api_key_invalid/i.test(d?.error?.message||'');
+  const isThinkingUnsupported = (d)=> /thinking/i.test(d?.error?.message||'');
   const retryDelay = (d)=>{ // segundos sugeridos pelo Google, se houver
     const ri=(d?.error?.details||[]).find(x=>/RetryInfo/i.test(x['@type']||''));
     const s=ri?.retryDelay ? parseFloat(ri.retryDelay) : NaN; return isNaN(s)?null:s;
   };
   try{
     let { r, data } = await callGemini();
+    // alguns modelos não suportam thinkingConfig — remove e tenta de novo
+    if(!r.ok && isThinkingUnsupported(data)){
+      delete body.generationConfig.thinkingConfig;
+      ({ r, data } = await callGemini());
+    }
     // auto-recuperação: se o modelo salvo ficou inválido, descobre um novo e tenta 1x
     if(!r.ok && isModelError(data, r.status)){
       const novo = await fetchModels(key,{silent:true});
@@ -589,7 +618,9 @@ async function sendToTomoe(userText, isSystemOpen){
     }
     typing.remove();
     if(!r.ok){
-      if(isRate(data, r.status)){
+      if(isAuth(data, r.status)){
+        addMsg("🔑 Sua chave do Gemini não foi aceita (pode ter sido revogada, digitada com espaço extra, ou o projeto dela mudou).\n\nO que fazer:\n1. Abra aistudio.google.com/apikey\n2. Confira se a chave ainda existe (se não, crie uma nova em \"Create API key\")\n3. Copie e cole ela de novo em Ajustes → Chave de acesso do Gemini → Salvar\n\nDepois disso, tente me mandar uma mensagem de novo.","tomoe");
+      } else if(isRate(data, r.status)){
         addMsg("⏳ Você atingiu o limite do plano GRÁTIS do Gemini por enquanto — isso é normal, não é erro do app.\n\nO que fazer:\n• Espere 1–2 minutos e continue (o limite por minuto se renova sozinho).\n• Se travar muito, dá pra liberar limites bem maiores ativando o faturamento no Google — fica baratíssimo para 1 pessoa. Me peça e eu te explico.\n• Ou, em Ajustes, troque para um modelo terminado em “-flash-lite” (tem limite grátis maior).","tomoe");
       } else {
         addMsg("😥 Deu um erro ao falar com o Gemini: "+(data.error?.message||r.status)+"\n\nDica: em Ajustes, toque em “Buscar modelos que minha chave aceita”.","tomoe");
