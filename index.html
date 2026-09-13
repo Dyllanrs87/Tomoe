@@ -106,6 +106,7 @@ main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .msg.tomoe{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:5px;align-self:flex-start;box-shadow:var(--shadow)}
 .msg.me{background:linear-gradient(120deg,var(--shu),var(--shu-dark));color:#fff;border-bottom-right-radius:5px;align-self:flex-end}
 .msg.typing{color:var(--muted);font-style:italic}
+.sysnote{align-self:center;font-size:11px;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px 12px;margin:2px 0}
 .composer{display:flex;gap:8px;padding:10px 12px calc(10px + var(--safe-b));border-top:1px solid var(--line);background:var(--card)}
 .composer textarea{flex:1;resize:none;border:1px solid var(--line);border-radius:20px;padding:11px 14px;font:inherit;
   font-size:15px;background:var(--bg);color:var(--text);max-height:120px;min-height:44px}
@@ -299,10 +300,35 @@ VOZ (recursos do app): o app consegue FALAR o japonês que você escreve — o a
 
 FORMATO: respostas de chat, curtas e conversadas — NUNCA textões. Uma ideia por vez. Faça perguntas e espere a resposta (nunca responda pelo aluno).`;
 
+/* ---------- Currículo sincronizado com o livro Genki 1 (professor humano do aluno) ----------
+   Temas resumidos com PALAVRAS PRÓPRIAS (não é cópia do livro) — servem só de "bússola" de
+   tópico gramatical por lição, para a Tomoe não fugir da ordem do professor. Ela deve sempre
+   criar seus PRÓPRIOS exemplos/exercícios, nunca reproduzir diálogos/textos do livro. */
+const GENKI = [
+  {n:1, tema:"apresentações, dizer o que algo é (X é Y), perguntas básicas"},
+  {n:2, tema:"compras, pronomes demonstrativos (este/esse/aquele), preços"},
+  {n:3, tema:"verbos no presente, partículas básicas, convites (vamos?)"},
+  {n:4, tema:"existência de pessoas/objetos/lugares, passado de 'ser' e de verbos"},
+  {n:5, tema:"adjetivos (presente/passado), gostar/detestar, contar coisas"},
+  {n:6, tema:"forma-te, pedidos, permissão e proibição, oferecer ajuda"},
+  {n:7, tema:"ação em andamento, descrever aparência, contar pessoas"},
+  {n:8, tema:"formas curtas/informais, discurso citado ('ele disse que...'), gostar de fazer algo"},
+  {n:9, tema:"passado informal, opiniões citadas, já fiz / ainda não fiz"},
+  {n:10, tema:"comparações, planos e intenções, virar/ficar (mudança de estado)"},
+  {n:11, tema:"desejos ('quero fazer'), dar exemplos de ações, já fez alguma vez"},
+  {n:12, tema:"exagero ('demais'), sugestões, obrigação/necessidade, dúvida educada"}
+];
+function genkiHint(lesson){
+  if(!lesson) return "";
+  const atual = GENKI.find(g=>g.n===lesson);
+  const proximo = GENKI.find(g=>g.n===lesson+1);
+  return `\n\nCURRÍCULO (sincronizado com o Genki 1, livro do professor humano do aluno): o aluno está na Lição ${lesson}${atual?` — tema: ${atual.tema}`:''}. Use este ponto gramatical como o foco da aula, mas SEMPRE com exemplos, frases e exercícios SEUS (nunca reproduza diálogos, textos ou exercícios literais do livro didático — é material protegido). Reforce o que o professor já deve ter ensinado; ${proximo?`quando o aluno demonstrar domínio, você pode adiantar um gostinho da próxima (Lição ${proximo.n} — ${proximo.tema}), mas sem atropelar o professor.`:'este é o fim do conteúdo básico do Genki 1 — celebre com o aluno!'}`;
+}
+
 /* ---------- Modos (atividades dentro da MESMA conversa contínua) ---------- */
 const MODES = {
-  aula:{emo:"📚",titulo:"Aula",sub:"seguir o plano de estudos",accent:"shu",
-    prompt:`ATIVIDADE ATUAL: AULA. Aqui você SEGUE o currículo/plano de estudos (as matérias na ordem certa, respeitando pré-requisitos e o nível atual do aluno). Cumprimente, veja o que está pendente, proponha a MISSÃO DE HOJE (curta e clara) e ensine o próximo conteúdo planejado + revisão. Pode temperar a aula com viagem, anime, culinária e cultura para dar contexto, mas sem perder o fio do roteiro. Termine com resumo e próxima missão.`},
+  aula:{emo:"📚",titulo:"Aula",sub:"seguir o Genki 1 (professor)",accent:"shu",
+    prompt:`ATIVIDADE ATUAL: AULA. Aqui você SEGUE a sequência do livro Genki 1 que o professor humano do aluno usa nas aulas semanais (ver CURRÍCULO abaixo). Se ainda não souber em que lição o aluno está, PERGUNTE antes de ensinar. Cumprimente, veja o que está pendente, proponha a MISSÃO DE HOJE (curta e clara) e reforce o ponto gramatical da lição atual + revisão — sempre com material seu, nunca copiando o livro. Pode temperar com viagem, anime, culinária, história e cultura para dar contexto. Termine com resumo e próxima missão.`},
   batepapo:{emo:"💬",titulo:"Bate-papo",sub:"conversar livremente",accent:"ai",
     prompt:`ATIVIDADE ATUAL: BATE-PAPO. Aqui NÃO precisa seguir o roteiro de estudos. Converse naturalmente como uma amiga japonesa sobre os temas que surgirem (Japão, viagem, anime, culinária, cultura, o dia do aluno). Vá ensinando no meio da conversa: apresente uma palavra ou expressão útil aqui e ali, corrija com carinho quando ele errar e dê dicas rápidas — sem transformar em aula formal. Faça só o SEU lado e espere a resposta.`},
   pronuncia:{emo:"🎤",titulo:"Pronúncia",sub:"treinar a fala (com microfone)",accent:"matcha",
@@ -315,7 +341,8 @@ const MODES = {
 function fichaDefault(){return{
   nome:"", nivel:"N5", progressoNivel:0, sequencia:0, diasEstudando:0,
   xp:0, palavras:0, kanjis:0, gramaticas:0, precisao:null,
-  dificuldades:[], ultimaData:null
+  dificuldades:[], ultimaData:null,
+  licaoGenki:0   // lição atual do Genki 1 (0 = ainda não perguntou ao aluno)
 };}
 
 let ficha = LS.get('ficha', null);
@@ -385,6 +412,7 @@ function renderDash(){
       <div style="text-align:right"><div style="font-size:12px;color:var(--muted)">Sequência</div><div style="font-size:22px">🔥 ${f.sequencia}</div></div>
     </div>
     <div class="progressbar" style="margin-top:12px"><i style="width:${f.progressoNivel||0}%"></i></div>
+    ${f.licaoGenki?`<div class="pill" style="margin-top:10px">📘 Genki 1 — Lição ${f.licaoGenki}</div>`:''}
     <div class="kpis" style="margin-top:14px">
       <div class="kpi"><b>${f.palavras}</b><span>Palavras</span></div>
       <div class="kpi"><b>${f.kanjis}</b><span>Kanjis</span></div>
@@ -417,12 +445,19 @@ function openChat(modeKey){
   showScreen('chatScreen');
   renderHistory();
   el('input').focus();
+  // saudação/aviso LOCAL (não gasta requisição da IA); a IA só é chamada quando o aluno escreve
   if(first){
-    sendToTomoe("(o aluno abriu a atividade "+m.titulo+". Cumprimente e comece conforme a atividade.)", true);
+    const nome = ficha?.nome ? (', '+ficha.nome) : '';
+    addMsg(`Oi${nome}! 😊 Sou a Tomoe. É só me mandar um "oi" — ou já me contar o que você quer ver hoje — que a gente começa!`, 'tomoe');
   } else if(switching){
-    sendToTomoe("(o aluno mudou para a atividade "+m.titulo+" ("+m.sub+"). Continue de onde vocês estavam, sem se reapresentar; apenas faça a transição para essa atividade.)", true);
+    addNote('agora: '+m.emo+' '+m.titulo);
   }
   lastMode = modeKey; LS.set('lastMode', lastMode);
+}
+// divisória local (não vai pra IA nem pro histórico)
+function addNote(txt){
+  const d=document.createElement('div'); d.className='sysnote'; d.textContent=txt;
+  el('messages').appendChild(d); el('messages').scrollTop=el('messages').scrollHeight;
 }
 // trocar de atividade sem sair do chat
 el('modeSwitch').onchange = e=> openChat(e.target.value);
@@ -499,12 +534,13 @@ function setupMic(){
 
 function buildSystemPrompt(){
   const f=ficha;
-  const fichaTxt = `\n\n[FICHA_DO_ALUNO]\nnome: ${f.nome||'(desconhecido)'}\nnivel: ${f.nivel} (${f.progressoNivel||0}%)\ndias: ${f.diasEstudando}, sequencia: ${f.sequencia}, xp: ${f.xp}\npalavras: ${f.palavras}, kanjis: ${f.kanjis}, gramaticas: ${f.gramaticas}\ndificuldades: ${(f.dificuldades||[]).join(', ')||'nenhuma registrada'}`;
+  const fichaTxt = `\n\n[FICHA_DO_ALUNO]\nnome: ${f.nome||'(desconhecido)'}\nnivel: ${f.nivel} (${f.progressoNivel||0}%)\ndias: ${f.diasEstudando}, sequencia: ${f.sequencia}, xp: ${f.xp}\npalavras: ${f.palavras}, kanjis: ${f.kanjis}, gramaticas: ${f.gramaticas}\ndificuldades: ${(f.dificuldades||[]).join(', ')||'nenhuma registrada'}\nlicaoGenki: ${f.licaoGenki||0}`;
   const memTxt = (memoria.resumo||memoria.ondeParamos)
     ? `\n\n[MEMORIA_DE_CONVERSA]\nresumo: ${memoria.resumo||'—'}\nonde_paramos: ${memoria.ondeParamos||'—'}\ndecisoes: ${(memoria.decisoes||[]).join('; ')||'—'}`
     : `\n\n[MEMORIA_DE_CONVERSA] (primeiro contato — se a ficha não tiver nome/objetivos, faça uma breve entrevista inicial de forma leve.)`;
-  const upd = `\n\nAO FIM de uma sessão de estudo, e SÓ quando houver mudança real, acrescente na ÚLTIMA linha um bloco técnico (o aluno não vê) exatamente assim:\n<<TOMOE>>{"palavras":+N,"kanjis":+N,"gramaticas":+N,"xp":+N,"progressoNivel":P,"dificuldades":["..."],"resumo":"...","ondeParamos":"..."}<<END>>\nUse apenas os campos que mudaram. Números com + são incrementos. Não comente esse bloco.`;
-  return CORE + "\n\n"+ MODES[currentMode].prompt + fichaTxt + memTxt + upd;
+  const genkiTxt = (currentMode==='aula'||currentMode==='batepapo') ? genkiHint(f.licaoGenki) : '';
+  const upd = `\n\nAO FIM de uma sessão de estudo, e SÓ quando houver mudança real, acrescente na ÚLTIMA linha um bloco técnico (o aluno não vê) exatamente assim:\n<<TOMOE>>{"palavras":+N,"kanjis":+N,"gramaticas":+N,"xp":+N,"progressoNivel":P,"dificuldades":["..."],"licaoGenki":N,"resumo":"...","ondeParamos":"..."}<<END>>\nUse apenas os campos que mudaram. Números com + são incrementos (licaoGenki e progressoNivel são valor ABSOLUTO, não incremento). Atualize "licaoGenki" sempre que o aluno contar em que lição do Genki o professor está. Não comente esse bloco.`;
+  return CORE + "\n\n"+ MODES[currentMode].prompt + fichaTxt + memTxt + genkiTxt + upd;
 }
 
 async function sendToTomoe(userText, isSystemOpen){
@@ -519,9 +555,9 @@ async function sendToTomoe(userText, isSystemOpen){
 
   const body = {
     system_instruction:{parts:[{text:buildSystemPrompt()}]},
-    // envia só as últimas ~24 falas para não pesar/encarecer (o resto vive na memória)
-    contents: history.slice(-24).map(h=>({role:h.role==='user'?'user':'model',parts:[{text:h.text}]})),
-    generationConfig:{temperature:0.8,maxOutputTokens:1200}
+    // envia só as últimas ~16 falas para economizar (o resto vive na memória)
+    contents: history.slice(-16).map(h=>({role:h.role==='user'?'user':'model',parts:[{text:h.text}]})),
+    generationConfig:{temperature:0.8,maxOutputTokens:800}
   };
   const callGemini = async ()=>{
     const model = LS.get('model','gemini-flash-latest');
@@ -531,6 +567,11 @@ async function sendToTomoe(userText, isSystemOpen){
   };
   const isModelError = (d,status)=> status===404 ||
     /model/i.test(d?.error?.message||'') && /not (found|available|supported)|no longer|update your code/i.test(d?.error?.message||'');
+  const isRate = (d,status)=> status===429 || /quota|exhaust|rate.?limit|too many|resource has been/i.test(d?.error?.message||'');
+  const retryDelay = (d)=>{ // segundos sugeridos pelo Google, se houver
+    const ri=(d?.error?.details||[]).find(x=>/RetryInfo/i.test(x['@type']||''));
+    const s=ri?.retryDelay ? parseFloat(ri.retryDelay) : NaN; return isNaN(s)?null:s;
+  };
   try{
     let { r, data } = await callGemini();
     // auto-recuperação: se o modelo salvo ficou inválido, descobre um novo e tenta 1x
@@ -538,9 +579,21 @@ async function sendToTomoe(userText, isSystemOpen){
       const novo = await fetchModels(key,{silent:true});
       if(novo){ ({ r, data } = await callGemini()); }
     }
+    // limite do plano grátis: se o Google sugerir uma espera curta, aguarda e tenta 1x
+    if(!r.ok && isRate(data, r.status)){
+      const w = retryDelay(data);
+      if(w!=null && w<=25){
+        for(let s=Math.ceil(w)+1; s>0; s--){ typing.textContent=`Limite do Gemini atingido — tento de novo em ${s}s…`; await new Promise(res=>setTimeout(res,1000)); }
+        ({ r, data } = await callGemini());
+      }
+    }
     typing.remove();
     if(!r.ok){
-      addMsg("😥 Deu um erro ao falar com o Gemini: "+(data.error?.message||r.status)+"\n\nDica: em Ajustes, toque em “Buscar modelos que minha chave aceita”.","tomoe");
+      if(isRate(data, r.status)){
+        addMsg("⏳ Você atingiu o limite do plano GRÁTIS do Gemini por enquanto — isso é normal, não é erro do app.\n\nO que fazer:\n• Espere 1–2 minutos e continue (o limite por minuto se renova sozinho).\n• Se travar muito, dá pra liberar limites bem maiores ativando o faturamento no Google — fica baratíssimo para 1 pessoa. Me peça e eu te explico.\n• Ou, em Ajustes, troque para um modelo terminado em “-flash-lite” (tem limite grátis maior).","tomoe");
+      } else {
+        addMsg("😥 Deu um erro ao falar com o Gemini: "+(data.error?.message||r.status)+"\n\nDica: em Ajustes, toque em “Buscar modelos que minha chave aceita”.","tomoe");
+      }
       sending=false; el('send').disabled=false; return;
     }
     let txt = data.candidates?.[0]?.content?.parts?.map(p=>p.text).join('') || "…";
@@ -567,6 +620,7 @@ function extractUpdate(txt){
     if(u.gramaticas) ficha.gramaticas=inc(ficha.gramaticas,u.gramaticas);
     if(u.xp) ficha.xp=inc(ficha.xp,u.xp);
     if(typeof u.progressoNivel==='number') ficha.progressoNivel=Math.min(100,Math.max(0,u.progressoNivel));
+    if(typeof u.licaoGenki==='number') ficha.licaoGenki=Math.min(23,Math.max(0,u.licaoGenki));
     if(Array.isArray(u.dificuldades)&&u.dificuldades.length){
       const set=new Set([...(ficha.dificuldades||[]),...u.dificuldades]); ficha.dificuldades=[...set].slice(-8);
     }
