@@ -230,6 +230,8 @@ nav.tabbar button.active{color:var(--shu)}
     <section class="screen" id="dashScreen">
       <div class="sectitle">Seu progresso</div>
       <div class="card" id="dashCard"></div>
+      <div class="sectitle">Revisão de hoje</div>
+      <div class="card" id="dashRev"></div>
       <div class="sectitle">Suas dificuldades</div>
       <div class="card" id="dashWeak"><span style="color:var(--muted);font-size:13px">Ainda vou te conhecer melhor. 😊</span></div>
     </section>
@@ -342,8 +344,14 @@ const KANJI_POR_LICAO = {
 // próprios exemplos e exercícios, isso é só referência de conteúdo.
 const MATERIAL_POR_LICAO = {
   1: `SAUDAÇÕES: おはよう (ohayoo, "bom dia" casual) · おはようございます (ohayoo gozaimasu, "bom dia" polido) · こんにちは (konnichiwa, "boa tarde") · こんばんは (konbanwa, "boa noite" ao encontrar alguém) · さようなら (sayoonara, "adeus", tom formal/definitivo; no dia a dia usa-se mais じゃあ、また "jaa, mata") · しつれいします (shitsureeshimasu, "com licença", ao sair de uma sala formal ou se despedir de superior) · おやすみ(なさい) (oyasumi/oyasuminasai, só ao dormir) · ありがとう/ありがとうございます (arigatoo/arigatoo gozaimasu, casual/polido) · すみません (sumimasen, multifuncional: "com licença" / "desculpe" / "obrigado por um favor") · いいえ (iie, "não" / resposta a agradecimento-desculpa) · いってきます/いってらっしゃい (par ao sair de casa) · ただいま/おかえりなさい (par ao voltar pra casa) · いただきます/ごちそうさまでした (antes/depois de comer) · はじめまして (primeiro encontro) · よろしくおねがいします ("conto com você" / "muito prazer").
-NÚMEROS 0-100: 0 ゼロ/れい · 1 いち · 2 に · 3 さん · 4 よん/し/よ · 5 ご · 6 ろく · 7 なな/しち · 8 はち · 9 きゅう/く · 10 じゅう · dezenas = [número]+じゅう (20=にじゅう) · dezena+unidade (35=さんじゅうご) · 100=ひゃく.
-GRAMÁTICA: (1) [X]は[Y]です — partícula は marca o tópico, です é o verbo de ligação (わたしはがくせいです = eu sou estudante). (2) pergunta = frase + か no final. (3) [Substantivo1]の[Substantivo2] — liga/possui (だいがくのせんせい = professor da universidade). (4) sufixos: 〜さん (título de respeito, nunca em si mesmo), 〜じん (nacionalidade), 〜さい (idade), 〜じ (hora), 〜ねんせい (ano escolar).`
+NÚMEROS E CONTAGENS: base 0 ゼロ/れい · 1 いち · 2 に · 3 さん · 4 よん/し/よ · 5 ご · 6 ろく · 7 なな/しち · 8 はち · 9 きゅう/く · 10 じゅう · dezenas = [número]+じゅう (20 にじゅう, 30 さんじゅう...) · dezena+unidade (35=さんじゅうご) · 100=ひゃく.
+  HORAS (〜じ): いちじ(1h) にじ(2h) さんじ(3h) よじ(4h,*irregular*) ごじ(5h) ろくじ(6h) しちじ(7h,*irreg*) はちじ(8h) くじ(9h,*irreg*) じゅうじ(10h) じゅういちじ(11h) じゅうにじ(12h) · meia hora: 〜じはん (にじはん=2h30) · pergunta: いま なんじですか.
+  IDADE (〜さい): いっさい(1,*irreg*) はっさい(8,*irreg*) じゅっさい/じっさい(10,*irreg*) はたち(20,*especial*) · pergunta: なんさいですか / おいくつですか (mais polido).
+  TELEFONE: の como "hífen falado" entre blocos (03-3492-8170 → ぜろさんの さんよんきゅうにの はちいちななぜろ).
+GRAMÁTICA: (1) [X]は[Y]です — partícula は marca o tópico, です é o verbo de ligação (わたしはがくせいです = eu sou estudante). (2) pergunta = frase + か no final. (3) [Substantivo1]の[Substantivo2] — liga/possui (だいがくのせんせい = professor da universidade). (4) sufixos: 〜さん (título de respeito, NUNCA em si mesmo), 〜じん (nacionalidade, にほんじん), 〜ねんせい (ano escolar, いちねんせい), 〜ご (idioma, にほんご).
+HIRAGANA (46 básicos, por fileira): vogais あいうえお · K かきくけこ · S さしすせそ · T たちつてと · N なにぬねの · H はひふへほ · M まみむめも · Y やゆよ · R らりるれろ · W/N わ、を(partícula de objeto)、ん(nasal isolado).
+  Modificadores: dakuten(゛) muda K→G, S→Z, T→D, H→B (がぎぐげご/ざじずぜぞ/だぢづでど/ばびぶべぼ) · handakuten(゜) muda H→P (ぱぴぷぺぽ) · っ pequeno (sokuon) = pausa que dobra a consoante seguinte (がっこう=gakkou) · vogal longa (chooon) muda o sentido (おばさん=tia vs おばあさん=avó) · よう on (coluna "i" + や/ゆ/よ pequenos): きゃきゅきょ, しゃしゅしょ, ちゃちゅちょ, じゃじゅじょ etc.
+CULTURA: nomes japoneses formais vêm SOBRENOME primeiro, depois nome próprio (ex: Tanaka Ken) · 〜さん vai no sobrenome/nome do OUTRO, nunca em si mesmo.`
 };
 function genkiHint(lesson){
   if(!lesson) return "";
@@ -378,7 +386,50 @@ function fichaDefault(){return{
 
 let ficha = LS.get('ficha', null);
 let memoria = LS.get('memoria', {resumo:"", ondeParamos:"", decisoes:[]});
+let revisoes = LS.get('revisoes', []);  // [{item, tipo, nivel, proximaRevisao}] — flashcards de repetição espaçada
 let currentMode = null;
+
+/* ---------- REVISÃO ESPAÇADA (flashcards das aulas passadas) ---------- */
+// intervalos em dias: aprendeu hoje → revisa amanhã → 3 dias → 7 → 16 → 35 (cresce a cada acerto)
+const REVIEW_INTERVALS = [1,3,7,16,35];
+const hojeISO = ()=> new Date().toISOString().slice(0,10);
+const addDaysISO = (dateStr,n)=>{ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+function revisoesDeHoje(){
+  const hoje = hojeISO();
+  return revisoes.filter(r=>r.proximaRevisao<=hoje)
+    .sort((a,b)=>a.proximaRevisao.localeCompare(b.proximaRevisao))
+    .slice(0,6); // no máximo 6 itens por sessão, pra não virar prova nem pesar o prompt
+}
+function revisaoHint(){
+  const devidas = revisoesDeHoje();
+  if(!devidas.length) return "";
+  const lista = devidas.map(r=>`${r.item} (${r.tipo})`).join(', ');
+  return `\n\nREVISÃO ESPAÇADA (flashcards de aulas anteriores vencendo hoje): ${lista}. NÃO dê uma aula sobre eles de novo — apenas puxe 2-4 desses itens naturalmente na conversa (uma pergunta rápida, um exemplo que os use, pedir para o aluno traduzir/usar em frase). Espalhe ao longo da sessão, não tudo de uma vez no início. Reporte o resultado de cada um que você testar no bloco de atualização.`;
+}
+// aplica novosItens/revisados vindos do bloco <<TOMOE>> na lista de revisões
+function aplicarAtualizacaoRevisoes(u){
+  const hoje = hojeISO();
+  const norm = s=>String(s||'').trim().toLowerCase();
+  if(Array.isArray(u.novosItens)){
+    u.novosItens.slice(0,8).forEach(it=>{
+      const texto = it?.texto||it?.item; if(!texto) return;
+      if(revisoes.some(r=>norm(r.item)===norm(texto))) return; // já existe, não duplica
+      revisoes.push({item:texto, tipo:it.tipo||'vocab', nivel:0, proximaRevisao:addDaysISO(hoje,REVIEW_INTERVALS[0])});
+    });
+  }
+  if(Array.isArray(u.revisados)){
+    u.revisados.forEach(res=>{
+      const texto = res?.texto||res?.item; if(!texto) return;
+      const r = revisoes.find(x=>norm(x.item)===norm(texto));
+      if(!r) return;
+      if(res.acertou){ r.nivel = Math.min(r.nivel+1, REVIEW_INTERVALS.length-1); }
+      else { r.nivel = 0; }
+      r.proximaRevisao = addDaysISO(hoje, REVIEW_INTERVALS[r.nivel]);
+    });
+  }
+  if(revisoes.length>200) revisoes = revisoes.slice(-200); // limite de segurança
+  LS.set('revisoes', revisoes);
+}
 let history = LS.get('history', []);   // conversa contínua [{role, text, hidden?}]
 let lastMode = LS.get('lastMode','');
 let sending = false;
@@ -455,6 +506,12 @@ function renderDash(){
   el('dashWeak').innerHTML = (f.dificuldades&&f.dificuldades.length)
     ? f.dificuldades.map(d=>`<span class="pill">${d}</span>`).join('')
     : `<span style="color:var(--muted);font-size:13px">Ainda vou te conhecer melhor. 😊</span>`;
+  const devidas = revisoesDeHoje();
+  el('dashRev').innerHTML = devidas.length
+    ? `<span style="font-size:13px;color:var(--muted)">🔁 ${devidas.length} item(ns) prontos pra revisar — a Tomoe vai puxar naturalmente na próxima conversa.</span><div style="margin-top:8px">${devidas.map(r=>`<span class="pill">${r.item}</span>`).join('')}</div>`
+    : `<span style="color:var(--muted);font-size:13px">Nada vencendo hoje. Continue estudando pra ela ir te dando flashcards! 🎴</span>`;
+  const total = revisoes.length;
+  if(total) el('dashRev').innerHTML += `<div class="hint" style="margin-top:8px">${total} itens no total no seu banco de revisão.</div>`;
 }
 
 /* ---------- Chat ---------- */
@@ -570,8 +627,9 @@ function buildSystemPrompt(){
     ? `\n\n[MEMORIA_DE_CONVERSA]\nresumo: ${memoria.resumo||'—'}\nonde_paramos: ${memoria.ondeParamos||'—'}\ndecisoes: ${(memoria.decisoes||[]).join('; ')||'—'}`
     : `\n\n[MEMORIA_DE_CONVERSA] (primeiro contato — se a ficha não tiver nome/objetivos, faça uma breve entrevista inicial de forma leve.)`;
   const genkiTxt = (currentMode==='aula'||currentMode==='batepapo') ? genkiHint(f.licaoGenki) : '';
-  const upd = `\n\nAO FIM de uma sessão de estudo, e SÓ quando houver mudança real, acrescente na ÚLTIMA linha um bloco técnico (o aluno não vê) exatamente assim:\n<<TOMOE>>{"palavras":+N,"kanjis":+N,"gramaticas":+N,"xp":+N,"progressoNivel":P,"dificuldades":["..."],"licaoGenki":N,"resumo":"...","ondeParamos":"..."}<<END>>\nUse apenas os campos que mudaram. Números com + são incrementos (licaoGenki e progressoNivel são valor ABSOLUTO, não incremento). Atualize "licaoGenki" sempre que o aluno contar em que lição do Genki o professor está. Não comente esse bloco.`;
-  return CORE + "\n\n"+ MODES[currentMode].prompt + fichaTxt + memTxt + genkiTxt + upd;
+  const revTxt = revisaoHint();
+  const upd = `\n\nAO FIM de uma sessão de estudo, e SÓ quando houver mudança real, acrescente na ÚLTIMA linha um bloco técnico (o aluno não vê) exatamente assim:\n<<TOMOE>>{"palavras":+N,"kanjis":+N,"gramaticas":+N,"xp":+N,"progressoNivel":P,"dificuldades":["..."],"licaoGenki":N,"resumo":"...","ondeParamos":"...","novosItens":[{"texto":"...","tipo":"vocab|gramatica|kanji"}],"revisados":[{"texto":"...","acertou":true}]}<<END>>\nUse apenas os campos que mudaram. Números com + são incrementos (licaoGenki e progressoNivel são valor ABSOLUTO, não incremento). Atualize "licaoGenki" sempre que o aluno contar em que lição do Genki o professor está. "novosItens": liste de 2 a 6 palavras/estruturas/kanjis PRINCIPAIS que você ensinou nesta sessão (vira flashcard de revisão espaçada) — não liste tudo, só o que vale a pena fixar. "revisados": para cada item que estava em REVISÃO ESPAÇADA e você testou nesta sessão, diga se o aluno acertou (true) ou errou/hesitou (false). Não comente esse bloco.`;
+  return CORE + "\n\n"+ MODES[currentMode].prompt + fichaTxt + memTxt + genkiTxt + revTxt + upd;
 }
 
 async function sendToTomoe(userText, isSystemOpen){
@@ -670,6 +728,7 @@ function extractUpdate(txt){
     }
     if(u.resumo) memoria.resumo=u.resumo;
     if(u.ondeParamos) memoria.ondeParamos=u.ondeParamos;
+    aplicarAtualizacaoRevisoes(u);
     saveAll();
   }catch(e){}
   return txt.replace(/<<TOMOE>>[\s\S]*?<<END>>/,'').trim();
@@ -765,7 +824,7 @@ el('setSave').onclick=()=>{
 };
 el('setReset').onclick=()=>{
   if(confirm('Isso apaga TODO o seu progresso e a chave. Tem certeza?')){
-    ['apikey','model','ficha','memoria','theme','history','lastMode'].forEach(LS.del); location.reload();
+    ['apikey','model','ficha','memoria','theme','history','lastMode','revisoes'].forEach(LS.del); location.reload();
   }
 };
 
