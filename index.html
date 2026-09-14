@@ -565,6 +565,27 @@ function renderHistory(){
 const JP_RE = /[぀-ヿ㐀-䶿一-龯々ー]+/g;
 const MARK_RE = /\{\{([^{}]+)\}\}/g;
 
+// junta marcadores {{}} VIZINHOS (colados, ou só com espaço entre eles) num clique só —
+// proteção contra a Tomoe dividir a mesma palavra/expressão em marcadores separados
+// (ex.: {{こんにち}}{{は}} deve soar/tocar como uma coisa só: こんにちは).
+function agruparMarcadores(text){
+  const brutos=[...text.matchAll(MARK_RE)]; // {0:full,1:inner, index}
+  const grupos=[];
+  for(const m of brutos){
+    const prev = grupos[grupos.length-1];
+    if(prev){
+      const entre = text.slice(prev.fimIdx, m.index);
+      if(/^\s*$/.test(entre)){ // nada ou só espaço entre os marcadores → é a mesma unidade
+        prev.inner += entre + m[1];
+        prev.fimIdx = m.index + m[0].length;
+        continue;
+      }
+    }
+    grupos.push({inicioIdx:m.index, fimIdx:m.index+m[0].length, inner:m[1]});
+  }
+  return grupos;
+}
+
 function addMsg(text, who){
   const d=document.createElement('div');
   d.className='msg '+who;
@@ -572,12 +593,12 @@ function addMsg(text, who){
     let hasJP=false;
     const falaveis=[]; // guarda o texto de cada unidade, pro botão "ouvir tudo"
     let last=0;
-    text.replace(MARK_RE,(full,inner,idx)=>{
-      if(idx>last) appendComFallback(text.slice(last,idx));
-      const sp=document.createElement('span'); sp.className='jp'; sp.textContent=inner;
-      sp.title='Tocar para ouvir'; sp.onclick=()=>speak(inner);
-      d.appendChild(sp); hasJP=true; falaveis.push(inner);
-      last=idx+full.length; return full;
+    agruparMarcadores(text).forEach(g=>{
+      if(g.inicioIdx>last) appendComFallback(text.slice(last,g.inicioIdx));
+      const sp=document.createElement('span'); sp.className='jp'; sp.textContent=g.inner;
+      sp.title='Tocar para ouvir'; sp.onclick=()=>speak(g.inner);
+      d.appendChild(sp); hasJP=true; falaveis.push(g.inner);
+      last=g.fimIdx;
     });
     if(last<text.length) appendComFallback(text.slice(last));
     function appendComFallback(trecho){
