@@ -304,7 +304,7 @@ TEMPERO NATURAL: misture, sem forçar, curiosidades reais sobre lugares do Japã
 
 VOZ (recursos do app): o app consegue FALAR o japonês que você escreve. Para o aluno poder TOCAR e ouvir uma unidade específica (uma palavra, uma expressão fixa como um cumprimento, ou uma frase de exemplo inteira), envolva ESSA unidade completa entre chaves duplas: {{como assim}}. Exemplos: {{ありがとう}} (uma palavra) · {{おはようございます}} (uma expressão de cumprimento — mesmo sendo "duas palavras" gramaticalmente, é dita e ouvida como uma coisa só) · {{わたしはがくせいです}} (uma frase de exemplo inteira). REGRA DE OURO: cada marcador {{...}} deve ser algo que faça sentido ouvir de UMA VEZ SÓ, do início ao fim — NUNCA divida uma mesma palavra ou expressão em dois marcadores, e NUNCA misture numa frase inteira num marcador só quando o objetivo é ensinar 2 palavras separadas (aí use um marcador pra cada). Quando estiver ensinando uma lista de vocabulário, marque cada item separadamente: {{おはよう}} é casual, {{おはようございます}} é formal. Sempre que escrever japonês (kana/kanji), coloque dentro de {{...}} — é assim que o aluno consegue ouvir. O aluno também tem um MICROFONE: quando a mensagem dele começar com "🎤", é a transcrição do que ele FALOU em voz alta — avalie a pronúncia por como ficou a transcrição.
 
-FORMATO: respostas de chat, curtas e conversadas — NUNCA textões. Uma ideia por vez. Faça perguntas e espere a resposta (nunca responda pelo aluno).`;
+FORMATO: respostas de chat, curtas e conversadas — NUNCA textões. Uma ideia por vez. Faça perguntas e espere a resposta (nunca responda pelo aluno). NUNCA use símbolos de markdown (**negrito**, *itálico*, # título, etc.) — este chat mostra texto puro, esses símbolos apareceriam como asteriscos soltos e atrapalhariam o áudio. Se quiser destacar algo, use apenas os marcadores {{...}} explicados acima.`;
 
 /* ---------- Currículo sincronizado com o livro Genki 1 (professor humano do aluno) ----------
    Temas resumidos com PALAVRAS PRÓPRIAS (não é cópia do livro) — servem só de "bússola" de
@@ -560,59 +560,51 @@ function renderHistory(){
 /* separa a mensagem em pedaços de japonês tocáveis e o resto.
    Prioridade 1: marcadores {{...}} que a PRÓPRIA TOMOE coloca ao redor de cada unidade completa
    (palavra, expressão ou frase) — ela sabe melhor que qualquer algoritmo onde uma unidade começa
-   e termina. Prioridade 2 (se ela esquecer de marcar): bloco contíguo de japonês inteiro — NUNCA
-   quebramos letra por letra automaticamente, isso já se mostrou impreciso (ex.: "ございます"). */
+   e termina. Prioridade 2 (se ela esquecer de marcar algum pedaço): bloco contíguo de japonês —
+   NUNCA quebramos letra por letra automaticamente, isso já se mostrou impreciso (ex: "ございます").
+   Depois disso, TUDO que sobrar vizinho (marcado ou não, só separado por espaço/pontuação de
+   markdown que ela não devia ter usado) é fundido numa única unidade tocável. */
 const JP_RE = /[぀-ヿ㐀-䶿一-龯々ー]+/g;
 const MARK_RE = /\{\{([^{}]+)\}\}/g;
+const GAP_OK_RE = /^[\s*_~`]*$/; // "nada relevante no meio" = espaço e/ou sobras de markdown
 
-// junta marcadores {{}} VIZINHOS (colados, ou só com espaço entre eles) num clique só —
-// proteção contra a Tomoe dividir a mesma palavra/expressão em marcadores separados
-// (ex.: {{こんにち}}{{は}} deve soar/tocar como uma coisa só: こんにちは).
-function agruparMarcadores(text){
-  const brutos=[...text.matchAll(MARK_RE)]; // {0:full,1:inner, index}
-  const grupos=[];
-  for(const m of brutos){
-    const prev = grupos[grupos.length-1];
-    if(prev){
-      const entre = text.slice(prev.fimIdx, m.index);
-      if(/^\s*$/.test(entre)){ // nada ou só espaço entre os marcadores → é a mesma unidade
-        prev.inner += entre + m[1];
-        prev.fimIdx = m.index + m[0].length;
-        continue;
-      }
-    }
-    grupos.push({inicioIdx:m.index, fimIdx:m.index+m[0].length, inner:m[1]});
+function coletarChunks(text){
+  const chunks=[];
+  for(const m of text.matchAll(MARK_RE)) chunks.push({start:m.index, end:m.index+m[0].length, text:m[1]});
+  const dentroDeMarcador = idx => chunks.some(c=>idx>=c.start && idx<c.end);
+  for(const m of text.matchAll(JP_RE)){
+    if(dentroDeMarcador(m.index)) continue; // já coberto por um marcador, não duplica
+    chunks.push({start:m.index, end:m.index+m[0].length, text:m[0]});
   }
-  return grupos;
+  chunks.sort((a,b)=>a.start-b.start);
+  const fundidos=[];
+  for(const c of chunks){
+    const prev = fundidos[fundidos.length-1];
+    if(prev){
+      const entre = text.slice(prev.end, c.start);
+      if(GAP_OK_RE.test(entre)){ prev.text += entre + c.text; prev.end = c.end; continue; }
+    }
+    fundidos.push({...c});
+  }
+  return fundidos;
 }
 
 function addMsg(text, who){
   const d=document.createElement('div');
   d.className='msg '+who;
   if(who.startsWith('tomoe') && !who.includes('typing')){
+    text = text.replace(/\*\*/g,''); // limpa sobras de markdown (**negrito**) que ela não deveria usar
     let hasJP=false;
     const falaveis=[]; // guarda o texto de cada unidade, pro botão "ouvir tudo"
     let last=0;
-    agruparMarcadores(text).forEach(g=>{
-      if(g.inicioIdx>last) appendComFallback(text.slice(last,g.inicioIdx));
-      const sp=document.createElement('span'); sp.className='jp'; sp.textContent=g.inner;
-      sp.title='Tocar para ouvir'; sp.onclick=()=>speak(g.inner);
-      d.appendChild(sp); hasJP=true; falaveis.push(g.inner);
-      last=g.fimIdx;
+    coletarChunks(text).forEach(c=>{
+      if(c.start>last) d.appendChild(document.createTextNode(text.slice(last,c.start)));
+      const sp=document.createElement('span'); sp.className='jp'; sp.textContent=c.text;
+      sp.title='Tocar para ouvir'; sp.onclick=()=>speak(c.text);
+      d.appendChild(sp); hasJP=true; falaveis.push(c.text);
+      last=c.end;
     });
-    if(last<text.length) appendComFallback(text.slice(last));
-    function appendComFallback(trecho){
-      // trecho sem marcador — ainda pode ter japonês solto (ela esqueceu de marcar);
-      // vira UM bloco tocável por vez, nunca quebrado letra a letra.
-      let l2=0;
-      trecho.replace(JP_RE,(match,idx2)=>{
-        if(idx2>l2) d.appendChild(document.createTextNode(trecho.slice(l2,idx2)));
-        const sp=document.createElement('span'); sp.className='jp'; sp.textContent=match;
-        sp.title='Tocar para ouvir'; sp.onclick=()=>speak(match);
-        d.appendChild(sp); l2=idx2+match.length; hasJP=true; falaveis.push(match); return match;
-      });
-      if(l2<trecho.length) d.appendChild(document.createTextNode(trecho.slice(l2)));
-    }
+    if(last<text.length) d.appendChild(document.createTextNode(text.slice(last)));
     if(hasJP){ // botão para ouvir a mensagem TODA em japonês (opcional, separado do toque em palavra)
       const b=document.createElement('span'); b.className='speak'; b.textContent='🔊'; b.title='Ouvir a mensagem toda em japonês';
       b.onclick=()=>{ if(falaveis.length) speak(falaveis.join('。')); };
