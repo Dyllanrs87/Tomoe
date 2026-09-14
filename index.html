@@ -559,21 +559,42 @@ function renderHistory(){
 
 /* separa a mensagem em pedaços de japonês (tocáveis) e o resto */
 const JP_RE = /[぀-ヿ㐀-䶿一-龯々ー]+/g;
+const isJP = ch => /[぀-ヿ㐀-䶿一-龯々ー]/.test(ch||'');
+// segmentador de PALAVRAS japonesas nativo do navegador (grátis, sem API) — japonês não tem
+// espaço entre palavras, então sem isso "tocar" leria a frase inteira em vez de uma palavra só.
+let jaSegmenter = null;
+try{ if('Segmenter' in Intl) jaSegmenter = new Intl.Segmenter('ja', {granularity:'word'}); }catch(e){}
+
 function addMsg(text, who){
   const d=document.createElement('div');
   d.className='msg '+who;
   if(who.startsWith('tomoe') && !who.includes('typing')){
-    // monta com trechos de japonês clicáveis (falam ao tocar)
-    let last=0, m, hasJP=false;
-    text.replace(JP_RE,(match,idx)=>{
-      if(idx>last) d.appendChild(document.createTextNode(text.slice(last,idx)));
-      const sp=document.createElement('span'); sp.className='jp'; sp.textContent=match;
-      sp.title='Tocar para ouvir'; sp.onclick=()=>speak(match);
-      d.appendChild(sp); last=idx+match.length; hasJP=true; return match;
-    });
-    if(last<text.length) d.appendChild(document.createTextNode(text.slice(last)));
-    if(hasJP){ // botão para ouvir tudo em japonês
-      const b=document.createElement('span'); b.className='speak'; b.textContent='🔊'; b.title='Ouvir em japonês';
+    let hasJP=false;
+    if(jaSegmenter){
+      // caminho bom: cada PALAVRA japonesa vira seu próprio span tocável
+      for(const seg of jaSegmenter.segment(text)){
+        const s = seg.segment;
+        if(isJP(s[0])){
+          const sp=document.createElement('span'); sp.className='jp'; sp.textContent=s;
+          sp.title='Tocar para ouvir só esta palavra'; sp.onclick=()=>speak(s);
+          d.appendChild(sp); hasJP=true;
+        } else {
+          d.appendChild(document.createTextNode(s));
+        }
+      }
+    } else {
+      // navegador sem suporte a Intl.Segmenter: volta pro modo antigo (bloco contíguo)
+      let last=0;
+      text.replace(JP_RE,(match,idx)=>{
+        if(idx>last) d.appendChild(document.createTextNode(text.slice(last,idx)));
+        const sp=document.createElement('span'); sp.className='jp'; sp.textContent=match;
+        sp.title='Tocar para ouvir'; sp.onclick=()=>speak(match);
+        d.appendChild(sp); last=idx+match.length; hasJP=true; return match;
+      });
+      if(last<text.length) d.appendChild(document.createTextNode(text.slice(last)));
+    }
+    if(hasJP){ // botão para ouvir a mensagem TODA em japonês (opcional, separado do toque em palavra)
+      const b=document.createElement('span'); b.className='speak'; b.textContent='🔊'; b.title='Ouvir a mensagem toda em japonês';
       b.onclick=()=>{ const jp=(text.match(JP_RE)||[]).join('。'); if(jp) speak(jp); };
       d.appendChild(b);
     }
