@@ -653,9 +653,25 @@ function setupMic(){
   };
 }
 
+// quanto tempo faz desde a última vez que o aluno estudou (o app sabe a data real; a IA sozinha não)
+function diasDesdeUltimaVez(){
+  if(!ficha.ultimaData) return null;
+  const hoje=new Date(hojeISO()+'T00:00:00'), ultima=new Date(ficha.ultimaData+'T00:00:00');
+  return Math.round((hoje-ultima)/86400000);
+}
+function dataHint(){
+  const dias = diasDesdeUltimaVez();
+  let situacao;
+  if(dias===null) situacao = "primeira vez conversando";
+  else if(dias<=0) situacao = "mesma sessão/dia de hoje, já conversaram";
+  else if(dias===1) situacao = "normal, foi ontem que estudaram por último";
+  else if(dias<=3) situacao = `ficou ${dias} dias sem estudar — pode comentar rapidamente, de forma leve, sem cobrar`;
+  else situacao = `ficou ${dias} dias sem estudar — reconheça a pausa com acolhimento (nunca com culpa/cobrança), talvez sugira uma sessão mais curta pra retomar o ritmo`;
+  return `\n\n[DATA] hoje: ${hojeISO()} · última vez que estudou: ${ficha.ultimaData||'nunca'} · situação: ${situacao}.`;
+}
 function buildSystemPrompt(){
   const f=ficha;
-  const fichaTxt = `\n\n[FICHA_DO_ALUNO]\nnome: ${f.nome||'(desconhecido)'}\nnivel: ${f.nivel} (${f.progressoNivel||0}%)\ndias: ${f.diasEstudando}, sequencia: ${f.sequencia}, xp: ${f.xp}\npalavras: ${f.palavras}, kanjis: ${f.kanjis}, gramaticas: ${f.gramaticas}\ndificuldades: ${(f.dificuldades||[]).join(', ')||'nenhuma registrada'}\nlicaoGenki: ${f.licaoGenki||0}`;
+  const fichaTxt = `\n\n[FICHA_DO_ALUNO]\nnome: ${f.nome||'(desconhecido)'}\nnivel: ${f.nivel} (${f.progressoNivel||0}%)\ndias: ${f.diasEstudando}, sequencia: ${f.sequencia}, xp: ${f.xp}\npalavras: ${f.palavras}, kanjis: ${f.kanjis}, gramaticas: ${f.gramaticas}\ndificuldades: ${(f.dificuldades||[]).join(', ')||'nenhuma registrada'}\nlicaoGenki: ${f.licaoGenki||0}` + dataHint();
   const memTxt = (memoria.resumo||memoria.ondeParamos)
     ? `\n\n[MEMORIA_DE_CONVERSA]\nresumo: ${memoria.resumo||'—'}\nonde_paramos: ${memoria.ondeParamos||'—'}\ndecisoes: ${(memoria.decisoes||[]).join('; ')||'—'}`
     : `\n\n[MEMORIA_DE_CONVERSA] (primeiro contato — se a ficha não tiver nome/objetivos, faça uma breve entrevista inicial de forma leve.)`;
