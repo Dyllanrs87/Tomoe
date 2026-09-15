@@ -381,7 +381,9 @@ function fichaDefault(){return{
   nome:"", nivel:"N5", progressoNivel:0, sequencia:0, diasEstudando:0,
   xp:0, palavras:0, kanjis:0, gramaticas:0, precisao:null,
   dificuldades:[], ultimaData:null,
-  licaoGenki:0   // lição atual do Genki 1 (0 = ainda não perguntou ao aluno)
+  licaoGenki:0,   // lição atual do Genki 1 (0 = ainda não perguntou ao aluno)
+  metaMin:60, metaMax:90,      // meta de estudo diário, em minutos (padrão 1h-1h30)
+  minutosHoje:0, minutosHojeData:null  // tempo já estudado HOJE (zera sozinho ao virar o dia)
 };}
 
 let ficha = LS.get('ficha', null);
@@ -394,6 +396,20 @@ let currentMode = null;
 const REVIEW_INTERVALS = [1,3,7,16,35];
 const hojeISO = ()=> new Date().toISOString().slice(0,10);
 const addDaysISO = (dateStr,n)=>{ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+
+/* ---------- CRONÔMETRO DE ESTUDO (tempo real, medido pelo app) ---------- */
+// soma o tempo entre uma mensagem e outra como "tempo estudando", mas ignora pausas longas
+// (ex.: o aluno deixou a aba aberta e saiu) pra não inflar o contador.
+let ultimaAtividadeTs = Date.now();
+const PAUSA_MAX_MS = 10*60*1000; // gaps maiores que 10min não contam como estudo
+function registrarAtividade(){
+  const hoje = hojeISO();
+  if(ficha.minutosHojeData !== hoje){ ficha.minutosHoje = 0; ficha.minutosHojeData = hoje; }
+  const agora = Date.now();
+  const delta = agora - ultimaAtividadeTs;
+  if(delta>0 && delta<PAUSA_MAX_MS) ficha.minutosHoje += delta/60000;
+  ultimaAtividadeTs = agora;
+}
 function revisoesDeHoje(){
   const hoje = hojeISO();
   return revisoes.filter(r=>r.proximaRevisao<=hoje)
@@ -495,6 +511,8 @@ function renderDash(){
     </div>
     <div class="progressbar" style="margin-top:12px"><i style="width:${f.progressoNivel||0}%"></i></div>
     ${f.licaoGenki?`<div class="pill" style="margin-top:10px">📘 Genki 1 — Lição ${f.licaoGenki}</div>`:''}
+    ${(()=>{ const min=Math.round(f.minutosHojeData===hojeISO()?f.minutosHoje:0), pct=Math.min(100,Math.round(min/f.metaMax*100));
+      return `<div style="margin-top:12px"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted)"><span>⏱️ Hoje</span><span>${min} / ${f.metaMin}-${f.metaMax} min</span></div><div class="progressbar" style="margin-top:4px"><i style="width:${pct}%;background:linear-gradient(90deg,var(--matcha),var(--sakura))"></i></div></div>`; })()}
     <div class="kpis" style="margin-top:14px">
       <div class="kpi"><b>${f.palavras}</b><span>Palavras</span></div>
       <div class="kpi"><b>${f.kanjis}</b><span>Kanjis</span></div>
@@ -667,7 +685,17 @@ function dataHint(){
   else if(dias===1) situacao = "normal, foi ontem que estudaram por último";
   else if(dias<=3) situacao = `ficou ${dias} dias sem estudar — pode comentar rapidamente, de forma leve, sem cobrar`;
   else situacao = `ficou ${dias} dias sem estudar — reconheça a pausa com acolhimento (nunca com culpa/cobrança), talvez sugira uma sessão mais curta pra retomar o ritmo`;
-  return `\n\n[DATA] hoje: ${hojeISO()} · última vez que estudou: ${ficha.ultimaData||'nunca'} · situação: ${situacao}.`;
+
+  const f=ficha, minHoje=Math.round(f.minutosHojeData===hojeISO()?f.minutosHoje:0);
+  let metaTxt = `meta diária: ${f.metaMin}-${f.metaMax} min · hoje já estudou: ${minHoje} min`;
+  if(minHoje>=f.metaMax) metaTxt += ' (JÁ BATEU a meta de hoje — comemore! pode encerrar ou continuar se o aluno topar)';
+  else if(minHoje>=f.metaMin) metaTxt += ' (já cumpriu o mínimo, dentro da meta)';
+  else metaTxt += ` (faltam ~${Math.max(0,Math.round(f.metaMin-minHoje))} min pra bater ao menos o mínimo de hoje)`;
+  if(dias!==null && dias>1){
+    const mediaMeta = Math.round((f.metaMin+f.metaMax)/2);
+    metaTxt += ` · dias sem estudar deixaram ~${(dias-1)*mediaMeta} min de prática pendente (mencione com leveza se fizer sentido, nunca como cobrança — o objetivo é motivar a retomar, não fazer o aluno se sentir mal)`;
+  }
+  return `\n\n[DATA] hoje: ${hojeISO()} · última vez que estudou: ${ficha.ultimaData||'nunca'} · situação: ${situacao}\n[TEMPO DE ESTUDO] ${metaTxt}`;
 }
 function buildSystemPrompt(){
   const f=ficha;
@@ -685,6 +713,7 @@ async function sendToTomoe(userText, isSystemOpen){
   if(sending) return;
   const key = LS.get('apikey','');
   if(!key){ addMsg("⚠️ Configure sua chave do Gemini em Ajustes.","tomoe"); return; }
+  registrarAtividade(); saveAll(); // soma o tempo desde a última mensagem ao cronômetro de hoje
   sending=true; el('send').disabled=true;
   if(!isSystemOpen){ addMsg(userText,'me'); }
   history.push({role:'user', text:userText, hidden:!!isSystemOpen});
