@@ -149,6 +149,7 @@ nav.tabbar button.active{color:var(--shu)}
 .warn{background:#fff6f6;border:1px solid #f2c9c9;color:#9a2b2b;border-radius:12px;padding:10px 12px;font-size:12.5px}
 @media (prefers-color-scheme: dark){.warn{background:#2a1414;border-color:#5a2a2a;color:#f0b7b7}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body>
 <div id="app">
@@ -216,6 +217,7 @@ nav.tabbar button.active{color:var(--shu)}
         <button class="back" id="chatBack">‹</button>
         <div class="t" id="chatTitle">Conversa<small id="chatSub">com a Tomoe</small></div>
         <div class="spacer" style="flex:1"></div>
+        <button class="back" id="exportWord" title="Baixar resumo da aula de hoje em Word" style="font-size:18px">📄</button>
         <select id="modeSwitch" title="Atividade"></select>
       </div>
       <div class="messages" id="messages"></div>
@@ -295,6 +297,8 @@ ALFABETIZAÇÃO (híbrido, regra padrão — MAS ver CURRÍCULO abaixo, que pode
 VALOR PEDAGÓGICO: busque sempre equilíbrio entre precisão, fluência e complexidade — nunca deixe o aluno ficar "certinho mas robótico" (só frases de livro) nem "fluente mas raso" (só frases simples pra sempre). Vá elevando a complexidade das estruturas conforme ele ganha confiança.
 
 HONESTIDADE: nunca invente regras, palavras ou etimologias. Em dúvida, diga. Não presuma o que o aluno sabe sem evidência.
+
+COMO SUA MEMÓRIA REALMENTE FUNCIONA (nunca invente outra explicação): a conversa com o aluno NUNCA é apagada — fica salva para sempre no aparelho dele, ele pode rolar pra cima e reler tudo a qualquer momento. O que é limitado é só o quanto VOCÊ CONSEGUE VER de uma vez em cada resposta (as mensagens mais recentes + a ficha + o resumo salvo — por economia, não por a conversa ter sumido). Se algo de dias atrás não estiver no que foi te mostrado agora, a resposta correta é: "não estou vendo isso nas últimas mensagens, mas nada foi apagado — pode colar aqui de novo ou o aluno pode rolar pra cima e reler". NUNCA diga que "a sessão reiniciou", "o histórico foi zerado" ou qualquer coisa parecida — isso é falso e quebra a confiança do aluno. É exatamente por causa desse limite de visão que existe o "resumo" e as "decisões" na sua memória: sempre que o aluno estabelecer uma regra, correção ou combinado importante (ex.: "meu professor exige esta estrutura, não aquela"), registre em "decisoes" no bloco de atualização — isso é o que garante que aquilo NUNCA se perca, mesmo em conversas futuras que você não vai "ver" diretamente.
 
 VOCÊ NUNCA VÊ O LIVRO FÍSICO DO ALUNO: você não tem acesso a nenhuma página, edição ou numeração do Genki (ou qualquer outro livro) — o que você sabe sobre o Genki é só o TEMA de cada lição (ver CURRÍCULO), nada além disso. Se o aluno mencionar um número de página, uma edição (1ª/2ª/3ª) ou perguntar "o que tem nessa página", NUNCA finja saber — isso é uma das coisas mais graves que você pode fazer, pois inventar página/edição com confiança é pior do que não responder. Em vez disso, diga claramente que não vê a página dele e peça para ele DESCREVER ou COLAR o que está vendo (uma frase, um exercício, um título) — só aí você ajuda com o conteúdo real que ele trouxe.
 
@@ -636,6 +640,58 @@ function addMsg(text, who){
   return d;
 }
 
+/* ---------- EXPORTAR AULA EM WORD (.docx real, gerado no navegador, sem custo de IA) ---------- */
+function escapeXml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+}
+function paraXml(text, {bold=false, size=22, align=null, color=null}={}){
+  const rPr = `${bold?'<w:b/>':''}<w:sz w:val="${size}"/><w:szCs w:val="${size}"/>${color?`<w:color w:val="${color}"/>`:''}`;
+  const pPr = align ? `<w:pPr><w:jc w:val="${align}"/></w:pPr>` : '';
+  return String(text).split('\n').map(line=>
+    `<w:p>${pPr}<w:r><w:rPr>${rPr}</w:rPr><w:t xml:space="preserve">${escapeXml(line)||' '}</w:t></w:r></w:p>`
+  ).join('');
+}
+function limparParaExportar(text){
+  return text.replace(/\{\{([^{}]+)\}\}/g,'$1').replace(/\*\*/g,'').replace(/<<TOMOE>>[\s\S]*?<<END>>/,'').trim();
+}
+async function exportarAulaWord(){
+  if(typeof JSZip==='undefined'){ alert('A ferramenta de exportação ainda está carregando — espera 2 segundos e tenta de novo.'); return; }
+  const hoje = hojeISO();
+  const msgsHoje = history.filter(h=>!h.hidden && (h.ts||'').slice(0,10)===hoje && h.text && h.text.trim());
+  if(!msgsHoje.length){ alert('Ainda não teve conversa hoje pra exportar. Estuda um pouco primeiro! 😊'); return; }
+
+  let body = '';
+  body += paraXml('巴 Tomoe — Resumo da Aula', {bold:true, size:40, align:'center'});
+  const sub = [ficha.nome, hoje, `Nível ${ficha.nivel} (${ficha.progressoNivel||0}%)`, ficha.licaoGenki?`Genki 1 — Lição ${ficha.licaoGenki}`:null]
+    .filter(Boolean).join(' · ');
+  body += paraXml(sub, {align:'center', size:20, color:'888888'});
+  body += paraXml(' ');
+  msgsHoje.forEach(m=>{
+    const quem = m.role==='user' ? (ficha.nome||'Você') : 'Tomoe';
+    const cor = m.role==='user' ? '204A87' : 'B00021';
+    body += paraXml(quem+':', {bold:true, size:22, color:cor});
+    body += paraXml(limparParaExportar(m.text), {size:22});
+    body += paraXml(' ');
+  });
+  if(memoria.resumo){ body += paraXml('Resumo:', {bold:true, size:22}); body += paraXml(memoria.resumo, {size:22}); body += paraXml(' '); }
+
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr/></w:body></w:document>`;
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+
+  const zip = new JSZip();
+  zip.file('[Content_Types].xml', contentTypes);
+  zip.file('_rels/.rels', rels);
+  zip.file('word/document.xml', documentXml);
+  const blob = await zip.generateAsync({type:'blob', mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `Tomoe_Aula_${hoje}.docx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 8000);
+}
+el('exportWord').onclick = exportarAulaWord;
+
 /* ---------- VOZ: Tomoe fala (Text-to-Speech do navegador, grátis) ---------- */
 let jpVoice=null;
 function pickVoice(){
@@ -705,7 +761,7 @@ function buildSystemPrompt(){
     : `\n\n[MEMORIA_DE_CONVERSA] (primeiro contato — se a ficha não tiver nome/objetivos, faça uma breve entrevista inicial de forma leve.)`;
   const genkiTxt = (currentMode==='aula'||currentMode==='batepapo') ? genkiHint(f.licaoGenki) : '';
   const revTxt = revisaoHint();
-  const upd = `\n\nAO FIM de uma sessão de estudo, e SÓ quando houver mudança real, acrescente na ÚLTIMA linha um bloco técnico (o aluno não vê) exatamente assim:\n<<TOMOE>>{"palavras":+N,"kanjis":+N,"gramaticas":+N,"xp":+N,"progressoNivel":P,"dificuldades":["..."],"licaoGenki":N,"resumo":"...","ondeParamos":"...","novosItens":[{"texto":"...","tipo":"vocab|gramatica|kanji"}],"revisados":[{"texto":"...","acertou":true}]}<<END>>\nUse apenas os campos que mudaram. Números com + são incrementos (licaoGenki e progressoNivel são valor ABSOLUTO, não incremento). Atualize "licaoGenki" sempre que o aluno contar em que lição do Genki o professor está. "novosItens": liste de 2 a 6 palavras/estruturas/kanjis PRINCIPAIS que você ensinou nesta sessão (vira flashcard de revisão espaçada) — não liste tudo, só o que vale a pena fixar. "revisados": para cada item que estava em REVISÃO ESPAÇADA e você testou nesta sessão, diga se o aluno acertou (true) ou errou/hesitou (false). Não comente esse bloco.`;
+  const upd = `\n\nA conversa é CONTÍNUA (não existe "fim de sessão" claro), então NÃO espere o final para salvar — sempre que algo digno de lembrar acontecer (ensinou algo novo, o aluno corrigiu você, uma regra/decisão importante foi estabelecida, um item de revisão foi testado, o aluno marcou uma dificuldade), acrescente na ÚLTIMA linha da sua resposta um bloco técnico (o aluno não vê) exatamente assim:\n<<TOMOE>>{"palavras":+N,"kanjis":+N,"gramaticas":+N,"xp":+N,"progressoNivel":P,"dificuldades":["..."],"licaoGenki":N,"resumo":"...","ondeParamos":"...","decisoes":["..."],"novosItens":[{"texto":"...","tipo":"vocab|gramatica|kanji"}],"revisados":[{"texto":"...","acertou":true}]}<<END>>\nUse apenas os campos que mudaram nesta resposta — não precisa repetir tudo toda hora. Números com + são incrementos (licaoGenki e progressoNivel são valor ABSOLUTO, não incremento). Atualize "licaoGenki" sempre que o aluno contar em que lição do Genki o professor está. "decisoes": fatos/regras/combinados DURADOUROS que não podem se perder — ex.: "o professor exige a estrutura X, não a forma natural Y", "aluno prefere correção direta sem rodeios", "aluno está seguindo o material anotado por ele, priorizar isso sobre seu julgamento". Cada item curto (1 frase). "novosItens": liste de 2 a 6 palavras/estruturas/kanjis PRINCIPAIS que você ensinou nesta resposta (vira flashcard de revisão espaçada) — não liste tudo, só o que vale a pena fixar. Se o aluno marcar uma palavra/frase com asterisco (*) no final, é o sinal dele de "tenho dificuldade nisto" — SEMPRE inclua em "dificuldades" e/ou "novosItens". "revisados": para cada item que estava em REVISÃO ESPAÇADA e você testou nesta sessão, diga se o aluno acertou (true) ou errou/hesitou (false). Não comente esse bloco.`;
   return CORE + "\n\n"+ MODES[currentMode].prompt + fichaTxt + memTxt + genkiTxt + revTxt + upd;
 }
 
@@ -716,7 +772,7 @@ async function sendToTomoe(userText, isSystemOpen){
   registrarAtividade(); saveAll(); // soma o tempo desde a última mensagem ao cronômetro de hoje
   sending=true; el('send').disabled=true;
   if(!isSystemOpen){ addMsg(userText,'me'); }
-  history.push({role:'user', text:userText, hidden:!!isSystemOpen});
+  history.push({role:'user', text:userText, hidden:!!isSystemOpen, ts:new Date().toISOString()});
   saveHistory();
   const typing = addMsg("Tomoe está digitando…","tomoe typing");
 
@@ -778,7 +834,7 @@ async function sendToTomoe(userText, isSystemOpen){
     }
     let txt = data.candidates?.[0]?.content?.parts?.map(p=>p.text).join('') || "…";
     txt = extractUpdate(txt);
-    history.push({role:'model', text:txt.trim()});
+    history.push({role:'model', text:txt.trim(), ts:new Date().toISOString()});
     saveHistory();
     addMsg(txt.trim(),'tomoe');
   }catch(e){
@@ -806,6 +862,9 @@ function extractUpdate(txt){
     }
     if(u.resumo) memoria.resumo=u.resumo;
     if(u.ondeParamos) memoria.ondeParamos=u.ondeParamos;
+    if(Array.isArray(u.decisoes)&&u.decisoes.length){
+      const set=new Set([...(memoria.decisoes||[]),...u.decisoes]); memoria.decisoes=[...set].slice(-12);
+    }
     aplicarAtualizacaoRevisoes(u);
     saveAll();
   }catch(e){}
