@@ -447,7 +447,7 @@ function aplicarAtualizacaoRevisoes(u){
       r.proximaRevisao = addDaysISO(hoje, REVIEW_INTERVALS[r.nivel]);
     });
   }
-  if(revisoes.length>200) revisoes = revisoes.slice(-200); // limite de segurança
+  if(revisoes.length>5000) revisoes = revisoes.slice(-5000); // limite de segurança (praticamente ilimitado pro uso real — só os itens VENCIDOS entram no prompt)
   LS.set('revisoes', revisoes);
 }
 let history = LS.get('history', []);   // conversa contínua [{role, text, hidden?}]
@@ -858,12 +858,12 @@ function extractUpdate(txt){
     if(typeof u.progressoNivel==='number') ficha.progressoNivel=Math.min(100,Math.max(0,u.progressoNivel));
     if(typeof u.licaoGenki==='number') ficha.licaoGenki=Math.min(23,Math.max(0,u.licaoGenki));
     if(Array.isArray(u.dificuldades)&&u.dificuldades.length){
-      const set=new Set([...(ficha.dificuldades||[]),...u.dificuldades]); ficha.dificuldades=[...set].slice(-20);
+      const set=new Set([...(ficha.dificuldades||[]),...u.dificuldades]); ficha.dificuldades=[...set].slice(-100);
     }
     if(u.resumo) memoria.resumo=u.resumo;
     if(u.ondeParamos) memoria.ondeParamos=u.ondeParamos;
     if(Array.isArray(u.decisoes)&&u.decisoes.length){
-      const set=new Set([...(memoria.decisoes||[]),...u.decisoes]); memoria.decisoes=[...set].slice(-25);
+      const set=new Set([...(memoria.decisoes||[]),...u.decisoes]); memoria.decisoes=[...set].slice(-100);
     }
     aplicarAtualizacaoRevisoes(u);
     saveAll();
