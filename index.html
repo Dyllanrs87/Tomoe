@@ -858,12 +858,12 @@ function extractUpdate(txt){
     if(typeof u.progressoNivel==='number') ficha.progressoNivel=Math.min(100,Math.max(0,u.progressoNivel));
     if(typeof u.licaoGenki==='number') ficha.licaoGenki=Math.min(23,Math.max(0,u.licaoGenki));
     if(Array.isArray(u.dificuldades)&&u.dificuldades.length){
-      const set=new Set([...(ficha.dificuldades||[]),...u.dificuldades]); ficha.dificuldades=[...set].slice(-8);
+      const set=new Set([...(ficha.dificuldades||[]),...u.dificuldades]); ficha.dificuldades=[...set].slice(-20);
     }
     if(u.resumo) memoria.resumo=u.resumo;
     if(u.ondeParamos) memoria.ondeParamos=u.ondeParamos;
     if(Array.isArray(u.decisoes)&&u.decisoes.length){
-      const set=new Set([...(memoria.decisoes||[]),...u.decisoes]); memoria.decisoes=[...set].slice(-12);
+      const set=new Set([...(memoria.decisoes||[]),...u.decisoes]); memoria.decisoes=[...set].slice(-25);
     }
     aplicarAtualizacaoRevisoes(u);
     saveAll();
