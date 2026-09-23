@@ -401,6 +401,20 @@ const REVIEW_INTERVALS = [1,3,7,16,35];
 const hojeISO = ()=> new Date().toISOString().slice(0,10);
 const addDaysISO = (dateStr,n)=>{ const d=new Date(dateStr+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
 
+// contexto enviado à IA: as últimas 2 SEMANAS de conversa (não um nº fixo de mensagens) — pro
+// aluno de uso leve (poucas horas/semana), isso cobre praticamente tudo, sem custo alto. Um teto
+// de segurança (CONTEXTO_MAX_MSGS) evita disparar o custo numa semana excepcionalmente ativa.
+const CONTEXTO_DIAS = 14;
+const CONTEXTO_MAX_MSGS = 120;
+function contextoParaEnviar(){
+  const corte = Date.now() - CONTEXTO_DIAS*86400000;
+  const dentroDaJanela = history.filter(h=> h.ts && new Date(h.ts).getTime()>=corte);
+  // mensagens de antes desse recurso não têm carimbo de data — se a janela por data ficar
+  // curta demais (transição, ou pouca conversa mesmo), cai no mínimo antigo (16) pra nunca piorar.
+  if(dentroDaJanela.length<16) return history.slice(-16);
+  return dentroDaJanela.slice(-CONTEXTO_MAX_MSGS);
+}
+
 /* ---------- CRONÔMETRO DE ESTUDO (tempo real, medido pelo app) ---------- */
 // soma o tempo entre uma mensagem e outra como "tempo estudando", mas ignora pausas longas
 // (ex.: o aluno deixou a aba aberta e saiu) pra não inflar o contador.
@@ -778,8 +792,8 @@ async function sendToTomoe(userText, isSystemOpen){
 
   const body = {
     system_instruction:{parts:[{text:buildSystemPrompt()}]},
-    // envia só as últimas ~16 falas para economizar (o resto vive na memória)
-    contents: history.slice(-16).map(h=>({role:h.role==='user'?'user':'model',parts:[{text:h.text}]})),
+    // envia a conversa das últimas 2 semanas (com teto de segurança) — o resto vive na memória
+    contents: contextoParaEnviar().map(h=>({role:h.role==='user'?'user':'model',parts:[{text:h.text}]})),
     // thinkingBudget:0 desliga o "raciocínio invisível" do modelo (ele consumia o limite de
     // tokens sozinho e cortava a resposta visível pela metade); maxOutputTokens um pouco maior
     // como margem de segurança.
